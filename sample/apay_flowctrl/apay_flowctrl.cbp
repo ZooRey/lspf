@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="apay_flowctrl" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/server-demo" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="CMakeLists.txt" />
+		<Unit filename="gen-channel/PaymentChannel.cpp" />
+		<Unit filename="gen-channel/PaymentChannel.h" />
+		<Unit filename="gen-channel/payment_channel_constants.cpp" />
+		<Unit filename="gen-channel/payment_channel_constants.h" />
+		<Unit filename="gen-channel/payment_channel_types.cpp" />
+		<Unit filename="gen-channel/payment_channel_types.h" />
+		<Unit filename="gen-server/AccPayment.cpp" />
+		<Unit filename="gen-server/AccPayment.h" />
+		<Unit filename="gen-server/AccPayment_server.skeleton.cpp" />
+		<Unit filename="gen-server/payment_constants.cpp" />
+		<Unit filename="gen-server/payment_constants.h" />
+		<Unit filename="gen-server/payment_types.cpp" />
+		<Unit filename="gen-server/payment_types.h" />
+		<Unit filename="main/main.cpp" />
+		<Unit filename="main/myserver.cpp" />
+		<Unit filename="main/myserver.h" />
+		<Unit filename="main/service.cpp" />
+		<Unit filename="main/service.h" />
+		<Unit filename="oldapi/toolkits4.h" />
+		<Unit filename="oldapi/xservice.h" />
+		<Unit filename="oldapi/xsvc_client.cpp" />
+		<Unit filename="oldapi/xsvc_client.h" />
+		<Unit filename="riskctrl/dao_riskctrl.cpp" />
+		<Unit filename="riskctrl/dao_riskctrl.h" />
+		<Unit filename="riskctrl/risk_control.cpp" />
+		<Unit filename="riskctrl/risk_control.h" />
+		<Unit filename="route/dao_channel.cpp" />
+		<Unit filename="route/dao_channel.h" />
+		<Unit filename="route/route_calculator.cpp" />
+		<Unit filename="route/route_calculator.h" />
+		<Unit filename="route/route_dispath.cpp" />
+		<Unit filename="route/route_dispath.h" />
+		<Unit filename="service/app_exception.h" />
+		<Unit filename="service/busi_handler.cpp" />
+		<Unit filename="service/busi_handler.h" />
+		<Unit filename="service/busi_server.cpp" />
+		<Unit filename="service/busi_server.h" />
+		<Unit filename="service/dao_payment.cpp" />
+		<Unit filename="service/dao_payment.h" />
+		<Unit filename="service/data_sign.cpp" />
+		<Unit filename="service/data_sign.h" />
+		<Unit filename="service/payment_handler.cpp" />
+		<Unit filename="service/payment_handler.h" />
+		<Unit filename="service/property_payment.cpp" />
+		<Unit filename="service/property_payment.h" />
+		<Unit filename="service/query_handler.cpp" />
+		<Unit filename="service/query_handler.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
