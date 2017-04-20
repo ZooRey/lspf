@@ -23,18 +23,19 @@ void ServiceWatcher(zhandle_t *zh, int type, int state, const char *path, void *
         PLOG_INFO("state: ZOO_CONNECTED_STATE");
         if (type == -1){
             PLOG_INFO("type= -1, Update all service list");
-            zk_client->Update();//¸üĞÂ·şÎñÁĞ±í
+            zk_client->Update();//æ›´æ–°æœåŠ¡åˆ—è¡¨
         }else if (type == ZOO_CHILD_EVENT) {
             PLOG_INFO("type= ZOO_CHILD_EVENT, Update  service path: %s", path);
-            zk_client->Update(path);//¸üĞÂ·şÎñÁĞ±í
+            zk_client->Update(path);//æ›´æ–°æœåŠ¡åˆ—è¡¨
         }
     } else if (state == ZOO_AUTH_FAILED_STATE) {
         PLOG_INFO("InitWatcher() ZOO_AUTH_FAILED_STATE");
     } else if (state == ZOO_EXPIRED_SESSION_STATE) {
         PLOG_ERROR("state: ZOO_EXPIRED_SESSION_STATE, need reconnect server");
-        ///Á¬½Ó³ö´í£¬ÖØĞÂÁ¬½Ó
+        ///è¿æ¥å‡ºé”™ï¼Œé‡æ–°è¿æ¥
         zk_client->ConnectZK();
     } else if (state == ZOO_CONNECTING_STATE) {
+	zk_client->SetConnState(false);
         PLOG_INFO("InitWatcher() ZOO_CONNECTING_STATE");
     } else if (state == ZOO_ASSOCIATING_STATE) {
         PLOG_INFO("InitWatcher() ZOO_ASSOCIATING_STATE");
@@ -68,7 +69,7 @@ void ZkClient::Init(const std::string &zk_hosts, const std::string &service_name
 
     StringUtility::Split(service_name_list, ",", &m_service_name_list);
 
-    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //ÉèÖÃÈÕÖ¾¼¶±ğ,±ÜÃâ³öÏÖÒ»Ğ©ÆäËûĞÅÏ¢
+    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //è®¾ç½®æ—¥å¿—çº§åˆ«,é¿å…å‡ºç°ä¸€äº›å…¶ä»–ä¿¡æ¯
 
     std::vector<std::string>::iterator it = m_service_name_list.begin();
     for (; it != m_service_name_list.end(); ++it){
@@ -79,7 +80,7 @@ void ZkClient::Init(const std::string &zk_hosts, const std::string &service_name
     }
 }
 
-//Á¬½Ózk server
+//è¿æ¥zk server
 void ZkClient::ConnectZK() {
 
     if (m_zhandle) {
@@ -92,12 +93,17 @@ void ZkClient::ConnectZK() {
     while (!m_connected) {
         PLOG_INFO("Connect zookeeper server start...");
         m_zhandle = zookeeper_init(m_zk_hosts.c_str(), ServiceWatcher, m_timeout, NULL, this, 0);
+	if(m_zhandle != NULL)
+	{
+	    PLOG_INFO("zookeeper_init() successful!");
+	    break;
+	}
         sleep(5);
     }
 
     PLOG_INFO("Connect zookeeper server successful!");
 }
-//¸üĞÂ·şÎñÁĞ±í
+//æ›´æ–°æœåŠ¡åˆ—è¡¨
 void ZkClient::Update()
 {
     std::vector<std::string>::iterator it = m_service_name_list.begin();
@@ -107,19 +113,26 @@ void ZkClient::Update()
     }
 }
 
-//¸üĞÂ·şÎñÁĞ±í£¬Àä±¸ºÍÈÈ±¸
+//æ›´æ–°æœåŠ¡åˆ—è¡¨ï¼Œå†·å¤‡å’Œçƒ­å¤‡
 void ZkClient::Update(const std::string &path)
 {
     if (m_zhandle == NULL || m_connected == false) {
         ConnectZK();
     }
 
-    //»ñµÃ·şÎñ·İÊı
+    //è·å¾—æœåŠ¡ä»½æ•°
     struct String_vector str_vec;
     int ret = zoo_wget_children(m_zhandle, path.c_str(), ServiceWatcher, this, &str_vec);
-    if (ret) {
-        PLOG_ERROR("zoo_wget_children path:[%s] failed : %s", path.c_str(), zerror(ret));
+    if (ret != ZOK && ret != ZNONODE)
+    {
+        PLOG_INFO("zoo_wget_children path:[%s] failed : %s\n", path.c_str(), zerror(ret));
         return;
+    }
+    else if (ret == ZNONODE)
+    {
+        PLOG_INFO("zoo_wget_children path:[%s] : %s, create node \n", path.c_str(), zerror(ret));
+        zoo_create (m_zhandle, path.c_str(), "", 0,  &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+        zoo_wget_children(m_zhandle, path.c_str(), ServiceWatcher, this, &str_vec);
     }
 
     ServerInfoPtr server_info = m_all_serviceinfo_list[path.substr(1)];
@@ -132,9 +145,9 @@ void ZkClient::Update(const std::string &path)
 
     server_info->clear();
 
-    //»ñµÃ¸÷·İ·şÎñip:port
+    //è·å¾—å„ä»½æœåŠ¡ip:port
     for (int i = 0; i < str_vec.count; ++i) {
-        ///¸üĞÂ·şÎñÁĞ±í
+        ///æ›´æ–°æœåŠ¡åˆ—è¡¨
         server_info->push_back(str_vec.data[i]);
         PLOG_INFO("service[%d] info: %s", i+1, str_vec.data[i]);
     }
