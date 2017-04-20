@@ -84,6 +84,11 @@ void ZkServer::Publish()
     while (!m_connected){
         PLOG_INFO("Connect zookeeper server start...");
         m_zhandle = zookeeper_init(m_zk_hosts.c_str(), InitWatcher, m_timeout, NULL, this, 0);
+        if(m_zhandle != NULL)
+        {
+            PLOG_INFO("zookeeper_init OK");
+            break;
+        }
         sleep(5);
     }
 
