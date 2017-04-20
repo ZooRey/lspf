@@ -27,9 +27,10 @@ void InitWatcher(zhandle_t *zh, int type, int state, const char *path, void *wat
         PLOG_INFO("InitWatcher() ZOO_AUTH_FAILED_STATE");
     } else if (state == ZOO_EXPIRED_SESSION_STATE) {
         PLOG_ERROR("ZOO_EXPIRED_SESSION_STATE, need reconnect server and register");
-        ///Á¬½Ó³ö´í£¬ÖØĞÂÁ¬½Ó×¢²á
+        ///è¿æ¥å‡ºé”™ï¼Œé‡æ–°è¿æ¥æ³¨å†Œ
         zk_server->Publish();
     } else if (state == ZOO_CONNECTING_STATE) {
+        zk_server->SetConnState(false);
         PLOG_INFO("InitWatcher() ZOO_CONNECTING_STATE");
     } else if (state == ZOO_ASSOCIATING_STATE) {
         PLOG_INFO("InitWatcher() ZOO_ASSOCIATING_STATE");
@@ -62,7 +63,7 @@ void ZkServer::Init(const std::string &zk_hosts, const int timeout)
     m_zk_hosts = zk_hosts;
     m_timeout = timeout;
 
-    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //ÉèÖÃÈÕÖ¾¼¶±ğ,±ÜÃâ³öÏÖÒ»Ğ©ÆäËûĞÅÏ¢
+    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //è®¾ç½®æ—¥å¿—çº§åˆ«,é¿å…å‡ºç°ä¸€äº›å…¶ä»–ä¿¡æ¯
 }
 
 
@@ -74,7 +75,7 @@ void ZkServer::SetServiceInfo(const std::string &service_name, const std::string
 }
 
 
-//Á¬½Ózk server
+//è¿æ¥zk server
 void ZkServer::Publish()
 {
     m_zhandle = NULL;
@@ -89,25 +90,37 @@ void ZkServer::Publish()
     PLOG_INFO("Connect zookeeper server successful!");
 }
 
-//·¢²¼·şÎñ£¬½¨Á¢ÁÙÊ±½Úµã
-void ZkServer::Register()
+void ZkServer::ZooCreate()
 {
-    PLOG_INFO("zookeeper Register start...");
-
     string server_path = "/" + m_service_name + "/" + m_data;
-    while(1){
-        char res_path[128];
-        int rc = zoo_create(m_zhandle, server_path.c_str(), "", 0,
-                &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, res_path, 128);
-
-        if (rc) {
-            PLOG_INFO("zoo_create() path=%s, error=%s", server_path.c_str(), zerror(rc));
-            sleep(5);
+    char res_path[128];
+    while(m_connected)
+    {
+        int rc = zoo_create (m_zhandle, server_path.c_str(), "", 0,
+                            &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, res_path, 128);
+        if (rc == ZOK || rc == ZNODEEXISTS)
+        {
+            PLOG_INFO("zoo_create() success, path=%s, error=%s\n", server_path.c_str(), zerror(rc));
+            break;
         }
-        break;
+        else
+        {
+            PLOG_INFO("zoo_create() failed, path=%s, error=%s\n", server_path.c_str(), zerror(rc));
+            sleep(1);
+        }
     }
-
-    PLOG_INFO("zookeeper Register succeed...");
 }
 
+//å‘å¸ƒæœåŠ¡ï¼Œå»ºç«‹ä¸´æ—¶èŠ‚ç‚¹
+void ZkServer::Register()
+{
+    printf("zookeeper Register start...\n");
 
+    boost::thread *pThread = new boost::thread(boost::bind(&ZkServer::ZooCreate, this));
+    if(NULL == pThread)
+    {
+        PLOG_INFO("create thread faild\n");
+    }
+
+    PLOG_INFO("zookeeper Register succeed...\n");
+}
