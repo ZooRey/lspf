@@ -17,17 +17,20 @@ class ZkServer
 public:
     static ZkServer* Instance();
 
-    ///³õÊ¼»¯
+    ///åˆå§‹åŒ–
     void Init(const std::string &zk_hosts, const int timeout);
 
-    ///·¢²¼·şÎñ
+    ///å‘å¸ƒæœåŠ¡
     void Publish();
 
-    ///ÉèÖÃ·şÎñÆ÷ĞÅÏ¢
+    ///è®¾ç½®æœåŠ¡å™¨ä¿¡æ¯
     void SetServiceInfo(const std::string &service_name, const std::string &node_name);
 
-    ///×¢²á·şÎñ
+    ///æ³¨å†ŒæœåŠ¡
     void Register();
+	 
+    //åˆ›å»ºç»“ç‚¹
+    void ZooCreate();
 
 	bool GetConnState()
 	{
