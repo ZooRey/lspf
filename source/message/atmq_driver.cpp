@@ -62,6 +62,9 @@ public:
     ATMQReply(): destSend(NULL){};
     virtual ~ATMQReply(){
         //std::cout << "~ATMQReply" <<std::endl;
+        if (destSend != NULL){
+            delete destSend;
+        }
     }
 
 	std::string correlationID;
@@ -432,7 +435,8 @@ void ATMQServerHandler::onMessage( const cms::Message* message ) {
 
 		reply->correlationID = textMessage->getCMSCorrelationID();
 
-		reply->destSend = textMessage->getCMSReplyTo().clone();//static_cast<cms::Destination*>(textMessage->getCMSReplyTo());
+		reply->destSend = (textMessage->getCMSReplyTo())->clone();//static_cast<cms::Destination*>(textMessage->getCMSReplyTo());
+		//Destination *dest= static_cast<cms::Destination*>(textMessage->getCMSReplyTo());
 
 		//消息回调处理
 		m_on_message(m_handle, text.c_str(), text.size(), reply);
