@@ -37,17 +37,17 @@ DBCommand::~DBCommand()
         }
 
         if (m_statement != NULL){
-            // ÖÕÖ¹Statement¶ÔÏó
+            // ç»ˆæ­¢Statementå¯¹è±¡
             m_connection->terminateStatement(m_statement);
             m_statement = NULL;
         }
 
         if (m_connection != NULL){
 
-            // 4¡¢ÊÍ·ÅÁ¬½Óµ½Á¬½Ó³Ø
+            // 4ã€é‡Šæ”¾è¿žæŽ¥åˆ°è¿žæŽ¥æ± 
             m_connection->flushCache();
 
-            //¶Ï¿ªÁ¬½Ó
+            //æ–­å¼€è¿žæŽ¥
             m_connPool->releaseConnection(m_connection);
 
 
@@ -116,7 +116,7 @@ void DBCommand::terminate()
 	if (m_statement != NULL)
 	{
 	    closeResultSet();
-	    // ÖÕÖ¹Statement¶ÔÏó
+	    // ç»ˆæ­¢Statementå¯¹è±¡
 		m_connection->terminateStatement(m_statement);
 		m_statement = NULL;
 	}
@@ -136,10 +136,6 @@ Statement *DBCommand::getStatement()
         closeResultSet();
 	}
 
-    if (bAutoCommit){
-        m_statement->setAutoCommit(true);
-    }
-
 	return m_statement;
 }
 
@@ -150,7 +146,6 @@ int DBCommand::executeUpdate(const string &_strSql)
 	}else{
         closeResultSet();
 	}
-
 
     m_statement->setAutoCommit(bAutoCommit);
 

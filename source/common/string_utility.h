@@ -59,6 +59,18 @@ public:
 	static void Xor(const std::string &src, std::string &dest);
 
 	static unsigned char CalXorCrc(const std::string &src);
+
+    ///@brief IP转换，从字符串转换为整型
+    /// @param 输入字符串ip
+    /// @return 成功:ip值
+    /// @return 失败:0
+    static unsigned long IPStringToLong(const std::string &ip);
+
+    ///@brief IP转换，从为整型转换字符串
+    /// @param 输入整形ip
+    /// @return 成功:ip字符串
+    /// @return 失败:""
+    static std::string IPLongToString(unsigned long ip);
 };
 
 #endif // _COMMON_STRING_UTILITY_H_

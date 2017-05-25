@@ -442,7 +442,7 @@ static pid_t gettid()
 void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
     const char* function, uint32_t id, uint32_t cls, const char* fmt, ...)
 {
-    if (pri < g_log_priority && !g_tlog_func) {
+    if (pri < g_log_priority) {
         return;
     }
     std::string logid = GetLogId();

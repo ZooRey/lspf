@@ -5,7 +5,7 @@
 #include <iostream>
 #include <stdio.h>
 #include "string_utility.h"
-//#include "log.h"
+#include <arpa/inet.h>
 //#include "define.h"
 
 void StringUtility::Split(const std::string& str,
@@ -365,3 +365,67 @@ unsigned char StringUtility::CalXorCrc(const std::string &src)
 
 	return crc;
 }
+
+/**
+* 功能：IP转换，从字符串转换为整型
+* 成功： 返回无符号整数
+* 失败： 返回0；
+**/
+unsigned long StringUtility::IPStringToLong(const std::string &ip)
+{
+	const char* p = ip.c_str();
+	char buf[20] = {0};
+	int index = 0;
+	while (*p)
+	{
+		if (*p == '.')
+		{
+			buf[index ++] = *p;
+			p ++;
+			continue;
+		}
+		if (*p >= '0' && *p <= '9')
+		{
+			buf[index ++] = *p;
+			p ++;
+			continue;
+		}
+		if (*p == ' ')
+		{
+			p ++;
+			continue;
+		}
+		return 0;
+	}
+
+	std::string ipstr = buf;
+	if (strlen(buf) == 0)
+	{
+		return 0;
+	}
+
+	return ntohl(inet_addr(buf));
+}
+
+/**
+* 功能：IP转换，从为整型转换字符串
+* 成功： ip字符串
+* 失败： 返回“”；
+**/
+std::string StringUtility::IPLongToString(unsigned long IP)
+{
+	if (IP == 0){
+		return "";
+	}
+
+	int i1 = ((IP >> 24) & 0xFF) ;
+	int i2 = ((IP >> 16) & 0xFF) ;
+	int i3 = ((IP >> 8) & 0xFF) ;
+	int i4 = (IP & 0xFF);
+
+	char buf[128] = {0};
+	sprintf(buf, "%d.%d.%d.%d", i1, i2, i3, i4);
+
+	return std::string(buf);
+}
+
