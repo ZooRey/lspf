@@ -343,6 +343,19 @@
 		<Unit filename="../rpc/tcp_connection_pool.h" />
 		<Unit filename="../sclog/CMakeLists.txt" />
 		<Unit filename="../service/CMakeLists.txt" />
+		<Unit filename="../transport/CMakeLists.txt" />
+		<Unit filename="../transport/async_mq_client.cpp" />
+		<Unit filename="../transport/async_mq_client.h" />
+		<Unit filename="../transport/async_mq_server.cpp" />
+		<Unit filename="../transport/async_mq_server.h" />
+		<Unit filename="../transport/comm_session.h" />
+		<Unit filename="../transport/session_cache.h" />
+		<Unit filename="../transport/sync_comm.cpp" />
+		<Unit filename="../transport/sync_comm.h" />
+		<Unit filename="../transport/zk_client.cpp" />
+		<Unit filename="../transport/zk_client.h" />
+		<Unit filename="../transport/zk_server.cpp" />
+		<Unit filename="../transport/zk_server.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
