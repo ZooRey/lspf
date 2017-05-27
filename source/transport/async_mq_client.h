@@ -1,5 +1,5 @@
-#ifndef __RPC_CLIENT_MQ_H__
-#define __RPC_CLIENT_MQ_H__
+#ifndef ASYNC_MQ_CLIENT
+#define ASYNC_MQ_CLIENT
 
 #include "common/thread.h"
 #include <string>

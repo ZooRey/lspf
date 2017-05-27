@@ -24,7 +24,7 @@ static SessionCache<MessageReplyPtr> server_session_cache;
 
 AsyncMQServer *AsyncMQServer::m_async_mq_server = NULL;
 
-static int OnAsyncRpcMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
+static int OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
 {
     PLOG_INFO("Get Message form MQ, length=%d, content=%s ",message_len, message);
 
@@ -50,9 +50,9 @@ bool AsyncMQServer::Init(std::string &brokerURI, std::string &destURI, bool need
 
     m_atmqdriver = new ATMQDriver(brokerURI, destURI, need_reply, use_topic, clientAck);
 
-    m_atmqdriver->Init(MessageDriver::MESSAGE_CLIENT);
+    m_atmqdriver->Init(MessageDriver::MESSAGE_SERVER);
 
-    m_atmqdriver->SetOnMessage(OnAsyncRpcMessage);
+    m_atmqdriver->SetOnMessage(OnAsyncMessage);
 
     lspf::net::Message::RegisterDriver(m_atmqdriver);
     lspf::net::Message::Run(m_server_handle, m_atmqdriver);
@@ -71,10 +71,13 @@ void AsyncMQServer::Run()
     boost::shared_ptr<MessageReply> reply;
 	while(1){
         server_send_queue.PopFront(&trans_message);
-        if (m_need_reply){
-            GetSession(trans_message.msg_id, reply);
-        }else{
-            reply.reset();
+
+        reply.reset();
+        GetSession(trans_message.msg_id, &reply);
+
+        if (reply.get() == NULL){
+            PLOG_ERROR("msg_id=%s ",trans_message.msg_id.c_str());
+            continue;
         }
          ///发送数据到消息队列
         lspf::net::Message::SendTo(m_server_handle, trans_message.msg_buffer.c_str(), trans_message.msg_buffer.size(), reply);
@@ -105,13 +108,13 @@ bool AsyncMQServer::SaveSession(const std::string &session_id, boost::shared_ptr
     return server_session_cache.PushSession(session_id, reply);
 }
 
-bool AsyncMQServer::GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> reply)
+bool AsyncMQServer::GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> *reply)
 {
     if(!m_need_reply){
         return true;
     }
 
-    return server_session_cache.PopSession(session_id, &reply);
+    return server_session_cache.PopSession(session_id, reply);
 }
 /*
 bool AsyncMQServer::SendToQueue(const std::string &send_message)
@@ -165,6 +168,7 @@ void AsyncMQServer::RecvFromQueue(std::string &msg_id, std::string &recv_message
 
     server_recv_queue.PopFront(&trans_message);
 
+    msg_id = trans_message.msg_id;
     recv_message = trans_message.msg_buffer;
 }
 

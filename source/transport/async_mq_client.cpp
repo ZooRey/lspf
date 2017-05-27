@@ -17,6 +17,7 @@ static int OnAsyncMessage(int handle, const char *message, size_t message_len, b
 {
     PLOG_INFO("Get Message form MQ, content=%s, length=%d", message, message_len);
     recv_queue.PushBack(std::string(message, message_len));
+    return 0;
 }
 
 bool AsyncMQClient::Init(std::string &brokerURI, std::string &destURI, bool need_reply, bool use_topic)

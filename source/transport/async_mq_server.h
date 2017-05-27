@@ -1,5 +1,5 @@
-#ifndef __RPC_CLIENT_MQ_H__
-#define __RPC_CLIENT_MQ_H__
+#ifndef ASYNC_MQ_SERVER
+#define ASYNC_MQ_SERVER
 
 #include "common/thread.h"
 #include "common/mutex.h"
@@ -80,7 +80,7 @@ public:
 
     bool SaveSession(const std::string &session_id, boost::shared_ptr<MessageReply> reply);
 
-    bool GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> reply);
+    bool GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> *reply);
 
 private:
     AsyncMQServer() : m_need_reply(true)

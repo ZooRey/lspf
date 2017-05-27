@@ -58,8 +58,8 @@ public:
         for(; it != lst_session_record.end(); ++it){
             if (it->key == key_){
                 *value_ = it->value;
+                set_session.erase(key_);
                 lst_session_record.erase(it);
-                set_session.erase(it->key);
                 return true;
             }
         }
