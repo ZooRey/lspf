@@ -290,6 +290,10 @@ void ATMQClientHandler::onMessage(const cms::Message* message){
             text = "NOT A TEXTMESSAGE!";
           }
 
+          if( clientAck ) {
+              message->acknowledge();
+          }
+
           m_on_message(m_handle, text.c_str(), text.size(), boost::shared_ptr<MessageReply>());
 
           //producer.send

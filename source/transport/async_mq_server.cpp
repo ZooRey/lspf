@@ -26,7 +26,9 @@ AsyncMQServer *AsyncMQServer::m_async_mq_server = NULL;
 
 static int OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
 {
-    PLOG_INFO("Get Message form MQ, length=%d, content=%s ",message_len, message);
+
+    static int64_t recvcout = 0;
+    PLOG_INFO("Get Message form MQ, length=%d, content=%s, count=%d",message_len, message, ++recvcout);
 
     TransMessage trans_message;
     trans_message.msg_id = AsyncMQServer::Instance()->GenSessionId();
@@ -36,6 +38,14 @@ static int OnAsyncMessage(int handle, const char *message, size_t message_len, b
 
     server_recv_queue.PushBack(trans_message);
 
+    if(AsyncMQServer::Instance()->waitFun)
+    {
+        while(!AsyncMQServer::Instance()->waitFun())
+        {
+            usleep(100);
+        }
+    }
+	
     return 0;
 }
 
@@ -57,6 +67,7 @@ bool AsyncMQServer::Init(std::string &brokerURI, std::string &destURI, bool need
     lspf::net::Message::RegisterDriver(m_atmqdriver);
     lspf::net::Message::Run(m_server_handle, m_atmqdriver);
 
+    waitFun = NULL;
 
     return true;
 }
@@ -79,7 +90,7 @@ void AsyncMQServer::Run()
             PLOG_ERROR("msg_id=%s ",trans_message.msg_id.c_str());
             continue;
         }
-         ///发送数据到消息队列
+         ///鍙戦�佹暟鎹埌娑堟伅闃熷垪
         lspf::net::Message::SendTo(m_server_handle, trans_message.msg_buffer.c_str(), trans_message.msg_buffer.size(), reply);
     }
 }
@@ -167,7 +178,7 @@ void AsyncMQServer::RecvFromQueue(std::string &msg_id, std::string &recv_message
     TransMessage trans_message;
 
     server_recv_queue.PopFront(&trans_message);
-
+    
     msg_id = trans_message.msg_id;
     recv_message = trans_message.msg_buffer;
 }
@@ -187,4 +198,9 @@ bool AsyncMQServer::TimedRecvFromQueue(const int timeout, std::string &msg_id, s
     }
 
     return res;
+}
+
+void AsyncMQServer::SetWaitFunction(WaitFunction func)
+{
+    waitFun = func;
 }

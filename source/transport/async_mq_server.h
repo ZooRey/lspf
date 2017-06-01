@@ -8,9 +8,13 @@
 #include <string>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 #include "message/message.h"
 #include "message/atmq_driver.h"
 using namespace lspf::net;
+
+//ä»MQä¸­æ¥æ”¶æ¶ˆæ¯æ—¶ç­‰å¾…çš„å›è°ƒå‡½æ•°ï¼Œå¦‚æœè¿”å›ä¸ºfalseå°†é˜»å¡ç­‰å¾…
+typedef boost::function<bool ()> WaitFunction;
 
 class AsyncMQServer : public Thread
 {
@@ -29,51 +33,56 @@ public:
 
     virtual ~AsyncMQServer(){}
 
-    /// @brief Æô¶¯Ïß³Ì
+    /// @brief å¯åŠ¨çº¿ç¨‹
     virtual void Run();
 
-    /// @brief ³õÊ¼»¯¶ÓÁĞ
-    /// @param brokerURI ·şÎñµØÖ·
-    /// @param destURI ¶ÓÁĞÃû³Æ
-    /// @param need_reply ÊÇ·ñĞèÒªÓ¦´ğ
-    /// @param use_topic ÊÇ·ñÎªÖ÷ÌâÄ£Ê½
-    /// @return true³É¹¦ falseÊ§°Ü
+    /// @brief åˆå§‹åŒ–é˜Ÿåˆ—
+    /// @param brokerURI æœåŠ¡åœ°å€
+    /// @param destURI é˜Ÿåˆ—åç§°
+    /// @param need_reply æ˜¯å¦éœ€è¦åº”ç­”
+    /// @param use_topic æ˜¯å¦ä¸ºä¸»é¢˜æ¨¡å¼
+    /// @return trueæˆåŠŸ falseå¤±è´¥
     bool Init(std::string &brokerURI, std::string &destURI, bool need_reply=true, bool use_topic=false);
 /*
-    /// @brief ·¢ËÍÏûÏ¢µ½¶ÓÁĞ£¨Éú²úÕßÊ¹ÓÃ£©
-    /// @param send_message ·¢ËÍÊı¾İ
-    /// @return true³É¹¦ falseÊ§°Ü
+    /// @brief å‘é€æ¶ˆæ¯åˆ°é˜Ÿåˆ—ï¼ˆç”Ÿäº§è€…ä½¿ç”¨ï¼‰
+    /// @param send_message å‘é€æ•°æ®
+    /// @return trueæˆåŠŸ falseå¤±è´¥
     bool SendToQueue(const std::string &send_message);
 */
-    /// @brief ×èÈûÊ½´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Ïû·ÑÕßÊ¹ÓÃ£©
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return ÎŞ
+    /// @brief é˜»å¡å¼ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆæ¶ˆè´¹è€…ä½¿ç”¨ï¼‰
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return æ— 
     void RecvFromQueue(std::string &recv_message);
 
-    /// @brief ´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Ïû·ÑÕßÊ¹ÓÃ£©
-    /// @param timeout ½ÓÊÕ³¬Ê±Ê±¼ä
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return true³É¹¦ false³¬Ê±ÎŞÊı¾İ
+    /// @brief ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆæ¶ˆè´¹è€…ä½¿ç”¨ï¼‰
+    /// @param timeout æ¥æ”¶è¶…æ—¶æ—¶é—´
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return trueæˆåŠŸ falseè¶…æ—¶æ— æ•°æ®
     bool TimedRecvFromQueue(const int timeout, std::string &recv_message);
 
-    /// @brief ·¢ËÍÏûÏ¢µ½¶ÓÁĞ£¨Òì²½RPCÓ¦´ğÊ¹ÓÃ£©
-    /// @param session_id ÏûÏ¢»á»°ID,ÓÃÓÚÓ¦´ğÏûÏ¢
-    /// @param send_message ·¢ËÍÊı¾İ
-    /// @return true³É¹¦ falseÊ§°Ü
+    /// @brief å‘é€æ¶ˆæ¯åˆ°é˜Ÿåˆ—ï¼ˆå¼‚æ­¥RPCåº”ç­”ä½¿ç”¨ï¼‰
+    /// @param session_id æ¶ˆæ¯ä¼šè¯ID,ç”¨äºåº”ç­”æ¶ˆæ¯
+    /// @param send_message å‘é€æ•°æ®
+    /// @return trueæˆåŠŸ falseå¤±è´¥
     bool SendToQueue(const std::string &session_id, const std::string &send_message);
 
-    /// @brief ×èÈûÊ½´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Òì²½RPCÓ¦´ğÊ¹ÓÃ£©
-    /// @param session_id ÏûÏ¢»Ø»°ID,ÓÃÓÚÓ¦´ğÏûÏ¢
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return ÎŞ
+    /// @brief é˜»å¡å¼ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆå¼‚æ­¥RPCåº”ç­”ä½¿ç”¨ï¼‰
+    /// @param session_id æ¶ˆæ¯å›è¯ID,ç”¨äºåº”ç­”æ¶ˆæ¯
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return æ— 
     void RecvFromQueue(std::string &session_id, std::string &recv_message);
 
-    /// @brief ´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Òì²½RPCÓ¦´ğÊ¹ÓÃ£©
-    /// @param timeout ½ÓÊÕ³¬Ê±Ê±¼ä
-    /// @param session_id ÏûÏ¢»Ø»°ID,ÓÃÓÚÓ¦´ğÏûÏ¢
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return true³É¹¦ false³¬Ê±ÎŞÊı¾İ
+    /// @brief ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆå¼‚æ­¥RPCåº”ç­”ä½¿ç”¨ï¼‰
+    /// @param timeout æ¥æ”¶è¶…æ—¶æ—¶é—´
+    /// @param session_id æ¶ˆæ¯å›è¯ID,ç”¨äºåº”ç­”æ¶ˆæ¯
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return trueæˆåŠŸ falseè¶…æ—¶æ— æ•°æ®
     bool TimedRecvFromQueue(const int timeout, std::string &session_id, std::string &recv_message);
+
+    /// @brief è®¾ç½®ä»MQä¸­æ¥æ”¶æ¶ˆæ¯æ—¶ç­‰å¾…çš„å›è°ƒå‡½æ•°
+    /// @param WaitFunction å›è°ƒå‡½æ•°
+    /// @return æ— 
+    void SetWaitFunction(WaitFunction func);
 
 public:
     std::string GenSessionId();
@@ -81,9 +90,11 @@ public:
     bool SaveSession(const std::string &session_id, boost::shared_ptr<MessageReply> reply);
 
     bool GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> *reply);
-
+	
+	WaitFunction waitFun;
+	
 private:
-    AsyncMQServer() : m_need_reply(true)
+    AsyncMQServer() : waitFun(NULL), m_need_reply(true)
     {
 
     }
