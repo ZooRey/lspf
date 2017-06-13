@@ -1,114 +1,360 @@
-#ifndef SESSION_CACHE_H
-#define SESSION_CACHE_H
+#ifndef __SESSION_CACHE_H__
+#define __SESSION_CACHE_H__
 
-#include <set>
 #include <list>
-#include <string>
-#include <ctime>
+#include <map>
+#include <iostream>
+#include "string.h"
+#include "stdio.h"
+#include "assert.h"
 #include "common/mutex.h"
+#include <vector>
 
 using namespace std;
 
-
-template <typename T>
+template<typename value_type, typename key_type = string>
 class SessionCache
 {
 public:
-    SessionCache():session_timeout(30){}
-
-	~SessionCache(){}
-
-    void SetTimeout(const int timeout)
+    typedef struct
     {
-        session_timeout = timeout;
+        value_type value;
+        key_type key;
+        int timestamp;
+    }Node;
+
+    typedef typename std::list<Node>::iterator list_It;
+    typedef typename std::map<key_type, list_It>::iterator map_It;
+    
+    SessionCache(int timeout_ = 0):m_timeout(timeout_)
+    {
+        clearAll();
+    }
+
+    ~SessionCache()
+    {
+        clearAll();
+    }
+
+    void SetTimeout(const int timeout_)
+    {
+        std::cout << "set time out to " << timeout_ << std::endl;
+        m_timeout = timeout_;
+    }
+
+    void clearAll()
+    {
+        AutoLocker lock(&m_mutex);
+        m_list.clear();
+        m_map.clear();
     }
 
     size_t Size()
     {
-        AutoLocker locker(&mutex);
-        return lst_session_record.size();
+        AutoLocker lock(&m_mutex);
+        assert(m_list.size() == m_map.size());
+        return m_map.size();
     }
 
-	bool PushSession(const std::string &key_, const T &value_)
-	{
-        AutoLocker locker(&mutex);
+    //æ’å…¥èŠ‚ç‚¹
+    bool PushSession(const key_type& key_, const value_type& value_)
+    {
+        AutoLocker lock(&m_mutex);
+        map_It mapIt = m_map.find(key_);
+        if(mapIt == m_map.end())
+        {
+            Node node;
+            node.value = value_;
+            node.key = key_;
+            node.timestamp = time(NULL);
 
-        if (set_session.find(key_) != set_session.end()){
+            m_list.push_back(node);
+            list_It listIt = --m_list.end();
+            m_map.insert(std::pair<key_type, list_It>(key_, listIt));
+            //std::cout << "Push value, key:value is  " << key_ << " : " << value_ << std::endl;
+            return true;
+        }
+        else
+        {
+            //std::cout << "Push value failed, key is  " << key_ << std::endl;
             return false;
         }
-
-        time_t timeNow = 0;
-        timeNow = time(NULL);
-        SessionRecord session_record;
-        //¼ÇÂ¼²åÈëÊ±¼ä
-        session_record.session_time = timeNow;
-        session_record.key = key_;
-        session_record.value = value_;
-
-        set_session.insert(key_);
-        lst_session_record.push_back(session_record);
-
-        return true;
-	}
-
-    bool PopSession(const std::string &key_, T *value_)
-    {
-        AutoLocker locker(&mutex);
-        typename std::list<SessionRecord>::iterator it = lst_session_record.begin();
-        for(; it != lst_session_record.end(); ++it){
-            if (it->key == key_){
-                *value_ = it->value;
-                set_session.erase(key_);
-                lst_session_record.erase(it);
-                return true;
-            }
-        }
-        return false;
     }
 
-	void ClearTiomeout()
-	{
-	    AutoLocker locker(&mutex);
-		time_t timeNow = 0;
-		timeNow = time(NULL) ;
-
-        typename std::list<SessionRecord>::iterator it;
-		typename std::list<SessionRecord>::iterator itTimeOut;
-
-		it = lst_session_record.begin();
-		itTimeOut = lst_session_record.end();
-		//²éÕÒ³¬Ê±µÄÊý¾Ý
-		for(; it != lst_session_record.end(); ++it){
-			if (difftime(timeNow, it->session_time) < session_timeout){
-				break;
-			}else{
-			    set_session.erase(it->key);
-	            itTimeOut = it;
-			}
-		}
-
-		//É¾³ý³¬Ê±µÄÊý¾Ý
-	    if (itTimeOut != lst_session_record.end()){
-			//erase(first,last):first,last·Ö±ðÖ¸ÏòÒ»¸öÐòÁÐÖÐ³õÊ¼¼°Ä©Î²Î»ÖÃµÄµü´úÆ÷¡£
-			//Õâ¸ö·¶Î§¼´ [first,last)£¬°üÀ¨ first µ½ last ¼äµÄËùÓÐÔªËØ£¬°üÀ¨ first Ö¸ÏòµÄÔªËØ£¬µ«²»°üÀ¨ last Ö¸ÏòµÄÔªËØ¡£
-			lst_session_record.erase(lst_session_record.begin(), ++itTimeOut);
-	    }
-	}
-
-private:
-    struct SessionRecord
+    //æŸ¥æ‰¾ç»“ç‚¹
+    bool FindSession(const key_type& key_, value_type& value_)
     {
-        time_t session_time;
-        std::string key;
-        T value;
-    };
+        AutoLocker lock(&m_mutex);
+        map_It mapIt = m_map.find(key_);
+        if(mapIt == m_map.end())
+        {
+            //std::cout << "find session failed, key is   " << key_ << std::endl;
+            return false;
+        }
+        value_ = mapIt->second->value;
+        assert(mapIt->second->key == key_);
+        //std::cout << "find session OK, key:value is  " << key_ << " : " << value_ << std::endl;
+        return true;
+    }
+
+    //åˆ é™¤æŒ‡å®škeyçš„ç»“ç‚¹ï¼Œå¹¶è¿”å›žç»“ç‚¹å€¼
+    bool PopSession(const key_type& key_, value_type *value_)
+    {
+        AutoLocker lock(&m_mutex);
+        map_It mapIt = m_map.find(key_);
+        if(mapIt == m_map.end())
+        {
+            //std::cout << "Pop session failed, key is   " << key_ << std::endl;
+            return false;
+        }
+        *value_ = mapIt->second->value;
+        assert(mapIt->second->key == key_);
+        m_list.erase(mapIt->second);
+        m_map.erase(key_);
+        //std::cout << "Pop session OK, key:value   " << key_ << " : " << value_ << std::endl;
+        return true;
+    }
+
+    //åˆ é™¤æŒ‡å®škeyçš„ç»“ç‚¹
+    bool DelSession(const key_type& key_)
+    {
+        AutoLocker lock(&m_mutex);
+        map_It mapIt = m_map.find(key_);
+        if(mapIt != m_map.end())
+        {
+            //std::cout << "Del session ok, key:value is   " << key_ << " : " << mapIt->second->value << std::endl;
+            m_list.erase(mapIt->second);
+            m_map.erase(key_);
+            return true;
+        }
+        else
+        {
+            //std::cout << "Del session failed, key is  " << key_ << std::endl;
+            return false;
+        }
+    }
+
+    //åˆ é™¤å¹¶è¿”å›žé¦–ç»“ç‚¹
+    bool PopFirstSession(key_type& key_, value_type& value_)
+    {
+       
+        AutoLocker lock(&m_mutex);
+        if(Size() == 0)
+        {
+            //std::cout << "Pop first session get empyt" << std::endl;
+            return false;
+        }
+        list_It listIt = m_list.begin();
+        key_ = listIt->key;
+        value_ = listIt->value;
+        m_map.erase(key_);
+        m_list.erase(listIt);
+        //std::cout << "Pop first session OK, key:value is  " << key_ << " : " << value_ << std::endl;
+        return true;
+    }
+
+    //åˆ é™¤è¶…æ—¶çš„ç»“ç‚¹
+    void ClearTimeout()
+    {
+        if(m_timeout == 0)
+        {
+            return;
+        }
+        AutoLocker lock(&m_mutex);
+        list_It listIt = m_list.begin();
+        int curtime = time(NULL);
+        Node node;
+        while(listIt != m_list.end())
+        {
+            node = *listIt;
+            if(curtime - node.timestamp >= m_timeout)
+            {
+                //std::cout << "remove timeout session ok, key:value is  " << node.key << " : " << node.value << std::endl;
+                list_It listIt1 = listIt;
+                listIt++;
+                m_list.erase(listIt1);
+                m_map.erase(node.key);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    //æ ¹æ®æŒ‡å®šè¶…æ—¶æ—¶é•¿åˆ é™¤ç»“ç‚¹
+    void ClearTimeout(const int timeout)
+    {
+        AutoLocker lock(&m_mutex);
+        list_It listIt = m_list.begin();
+        int curtime = time(NULL);
+        Node node;
+        while(listIt != m_list.end())
+        {
+            node = *listIt;
+            if(curtime - node.timestamp >= timeout)
+            {
+                //std::cout << "remove timeout(timeoutvalue: " << timeout << ") session ok, key:value is  " << node.key << " : " << node.value << std::endl;
+                list_It listIt1 = listIt;
+                listIt++;
+                m_list.erase(listIt1);
+                m_map.erase(node.key);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    //åˆ é™¤è¶…æ—¶çš„ç»“ç‚¹ï¼Œå¹¶è¿”å›žè¢«åˆ é™¤çš„èŠ‚ç‚¹
+    void ClearTimeout(vector<value_type>& valuevec, vector<key_type>& keyvec)
+    {
+        if(m_timeout == 0)
+        {
+            return;
+        }
+        AutoLocker lock(&m_mutex);
+        list_It listIt = m_list.begin();
+        int curtime = time(NULL);
+        Node node;
+        while(listIt != m_list.end())
+        {
+            node = *listIt;
+            if(curtime - node.timestamp >= m_timeout)
+            {
+                //std::cout << "remove timeout node ok, key:value is  " << node.key << " : " << node.value << std::endl;
+                list_It listIt1 = listIt;
+                listIt++;
+                valuevec.push_back(node.value);
+                keyvec.push_back(node.key);
+                m_list.erase(listIt1);
+                m_map.erase(node.key);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
 
 private:
-    int session_timeout;
-	TMutex mutex;
-	std::set<std::string> set_session;
-	std::list<SessionRecord> lst_session_record;
+    TMutex m_mutex;
+    int m_timeout;
+    std::map<key_type, list_It> m_map;
+    std::list<Node> m_list;
 };
 
+/* Test code
+int main()
+{
+    SessionCache<std::string, int> mylistmap(10);
+    int key;
+    std::string value;
+    char sztmp[10];
+    std::cout << "=============1==============="  << std::endl;
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============2==============="  << std::endl;
 
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        mylistmap.FindSession(key, value);
+    }
+    std::cout << "=============3==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        mylistmap.PopSession(key, value);
+    }
+    std::cout << "=============4==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============5==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        mylistmap.DelSession(key);
+    }
+    std::cout << "=============6==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============7==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        mylistmap.PopFirstSession(key, value);
+    }
+    std::cout << "=============8==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============9==============="  << std::endl;
+
+    sleep(11);
+
+    mylistmap.ClearTimeout();
+    std::cout << "=============10=============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============11==============="  << std::endl;
+
+    sleep(5);
+    mylistmap.ClearTimeout(3);
+    std::cout << "=============12==============="  << std::endl;
+
+    for(int i = 0; i < 5; i ++)
+    {
+        key = i + 200;
+        sprintf(sztmp, "%d", key);
+        value = std::string("listmapvalue_") + std::string(sztmp);
+        mylistmap.PushSession(key, value);
+    }
+    std::cout << "=============13==============="  << std::endl;
+    
+    sleep(11);
+    vector<string> valueVec;
+    vector<int> KeyVec;
+    mylistmap.ClearTimeout(valueVec, KeyVec);
+    for(int i = 0; i < valueVec.size(); i++)
+    {
+        std::cout << "clear timeout session, key:value " << KeyVec[i] << " : " << valueVec[i]  << std::endl;
+    }
+    std::cout << "current list size " << mylistmap.Size() << std::endl;
+
+    std::cout << "=============end==============="  << std::endl;
+}
+*/
 #endif

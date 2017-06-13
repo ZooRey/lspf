@@ -1,9 +1,13 @@
 #include "async_logging.h"
+#include "log.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 using namespace std;
+
+namespace lspf{
+namespace log{
 
 AsyncLogging* AsyncLogging::instance_ = NULL;
 
@@ -25,6 +29,21 @@ int AsyncLogging::Init(int flush_interval)
 	m_buffers.reserve(16);	//reserve是容器预留空间，但在空间内不真正创建元素对象，所以在没有添加新的对象之前，不能引用容器内的元素
 
 	return 0;
+}
+
+void AsyncLogging::Run()
+{
+    while(true){
+        std::string log_buffer;
+
+        AsyncLogging::Instance()->Data(log_buffer);
+        if (log_buffer.empty()){
+            LogFile::Flush();
+            continue;
+        }
+
+        LogFile::WriteLog(log_buffer.c_str(), log_buffer.size());
+    }
 }
 
 void AsyncLogging::Append(const std::string &log)
@@ -110,7 +129,8 @@ void AsyncLogging::Data(std::string &data)
 	buffers_write.clear();
 }
 
-
+} //namespace lspf
+} //namespace log
 
 
 

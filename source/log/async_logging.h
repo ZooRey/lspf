@@ -1,6 +1,7 @@
 #ifndef __ASYNC_LOGGING_H__
 #define __ASYNC_LOGGING_H__
 
+#include "common/thread.h"
 #include "common/mutex.h"
 #include "common/condition_variable.h"
 
@@ -11,6 +12,8 @@
 #include <vector>
 
 //using namespace std;
+namespace lspf{
+namespace log{
 
 template<size_t SIZE>
 class LogBuffer
@@ -53,10 +56,11 @@ private:
 	std::vector<std::string> m_data;
 };
 
-class AsyncLogging
+class AsyncLogging : public Thread
 {
 public:
 	static AsyncLogging* Instance();
+	virtual void Run();
 
 	int Init(int flush_interval=3000);
 	void Append(const std::string &log);
@@ -87,5 +91,6 @@ private:
 
 	static AsyncLogging* instance_;
 };
-
+} //namespace lspf
+} //namespace log
 #endif //__ASYNC_LOGGING_H__

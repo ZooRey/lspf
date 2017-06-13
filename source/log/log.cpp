@@ -16,6 +16,7 @@
 
 #include "common/mutex.h"
 #include "common/thread_local.h"
+#include "async_logging.h"
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 #define MAX_PATH_LEN    1024
@@ -38,6 +39,9 @@ static LOG_PRIORITY g_log_priority    = LOG_PRIORITY_DEBUG;
 
 static const char* g_device_str[]   = { "STDOUT", "FILE" };
 static const char* g_priority_str[] = { "TRACE", "DEBUG", "INFO", "ERROR", "FATAL" };
+
+static std::string g_log_file_path;
+static std::string g_log_file_name;
 
 static const struct {
         int number;
@@ -100,29 +104,6 @@ static int GetStackTrace(void** result, int max_depth, int skip_num) {
     return remain;
 }
 
-
-/// @brief 封装文件操作
-class LogFile {
-public:
-    static void WriteLog(const char* buff, uint32_t len);
-    static void WriteError(const char* buff, uint32_t len);
-    static void Close();
-    static void Flush();
-
-private:
-    static const char* GetFileName(const char* type, int index);
-    static int OpenFile(FILE **file, const char* mode, const char* type, int index);
-    static uint32_t GetLatestRollNum(const char* type);
-    static FILE* LogFD(uint32_t len);
-    static FILE* ErrorFD(uint32_t len);
-
-
-private:
-    static FILE*    m_log;
-    static FILE*    m_error;
-    static uint32_t m_roll_idx_log;
-    static uint32_t m_roll_idx_error;
-};
 
 /// @brief 创建目录
 int MakeDir(const char* path)
@@ -233,6 +214,8 @@ FILE*    LogFile::m_error           = NULL;
 uint32_t LogFile::m_roll_idx_log    = 0;
 uint32_t LogFile::m_roll_idx_error  = 0;
 
+
+
 /// @brief 获取日志文件名，日志文件命名规则为:
 ///    idx非0 : filename.log.idx/filename.error.idx
 ///    idx为0 : filename.log/filename.error
@@ -243,20 +226,34 @@ const char* LogFile::GetFileName(const char* type, int index)
     static char file_name[MAX_PATH_LEN] = {0};
     memset(file_name, 0, ARRAYSIZE(file_name));
     int len = snprintf(file_name, ARRAYSIZE(file_name),
-        "%s/%s.%s", g_file_path, Log::GetSelfName(), type);
+        "%s/%s.%s", g_log_file_path.c_str(), g_log_file_name.c_str(), type);
+    //int len = snprintf(file_name, ARRAYSIZE(file_name),
+    //    "%s/%s.%s", g_file_path, Log::GetSelfName(), type);
+
     if (index != 0) {
         snprintf(file_name + len, ARRAYSIZE(file_name) - len, ".%d", index);
     }
+
     return file_name;
 }
 
 /// @brief 打开日志文件
 int LogFile::OpenFile(FILE **file, const char* mode, const char* type, int index)
 {
-    *file = fopen(GetFileName(type, index), mode);
+    const char *file_name = GetFileName(type, index);
+
+    *file = fopen(file_name, mode);
     if (!(*file)) {
         fprintf(stderr, "fopen %s:%s failed %s\n", GetFileName(type, index), mode, strerror(errno));
     }
+
+    static char new_file_name[MAX_PATH_LEN] = {0};
+    memset(new_file_name, 0, ARRAYSIZE(new_file_name));
+    snprintf(new_file_name, ARRAYSIZE(new_file_name),
+             "%s/log_current", g_log_file_path.c_str());
+
+    symlink(file_name, new_file_name);
+
     return ((*file != NULL) ? 0 : -1);
 }
 
@@ -404,6 +401,26 @@ void LogFile::Flush()
     }
 }
 
+/// @brief 获取日志文件名，日志文件命名规则为:
+///    idx非0 : filename.log.idx/filename.error.idx
+///    idx为0 : filename.log/filename.error
+/// @para type "log"/"error"
+/// @para index 循环索引
+void Log::SetLogFilePath(const std::string &file_path)
+{
+    g_log_file_path = file_path;
+}
+
+/// @brief 获取日志文件名，日志文件命名规则为:
+///    idx非0 : filename.log.idx/filename.error.idx
+///    idx为0 : filename.log/filename.error
+/// @para type "log"/"error"
+/// @para index 循环索引
+void Log::SetLogFileName(const std::string &file_name)
+{
+    g_log_file_name = file_name;
+}
+
 /// @brief 获取当前程序名
 const char* Log::GetSelfName()
 {
@@ -457,20 +474,18 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
 
     // log前缀，tlog时不用组装
     int pre_len = 0;
-    if (!g_tlog_func) {
-        pre_len = snprintf(buff, ARRAYSIZE(buff), "[%s][%d][(%s)(%s:%d)(%s)][%s][%s] ",
-                GetTimeStamp().c_str(),
-                gettid(),
-                GetSelfName(),
-                file_name.c_str(),
-                line,
-                function,
-                g_priority_str[pri],
-                logid.c_str()
-            );
-        if (pre_len < 0) {
-            pre_len = 0;
-        }
+    pre_len = snprintf(buff, ARRAYSIZE(buff), "[%s][%d][(%s)(%s:%u)(%s)][%s][%s] ",
+        GetTimeStamp().c_str(),
+        gettid(),
+        Log::GetSelfName(),
+        file_name.c_str(),
+        line,
+        function,
+        g_priority_str[pri],
+        logid.c_str()
+    );
+    if (pre_len < 0) {
+        pre_len = 0;
     }
 
     va_list ap;
@@ -479,13 +494,6 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
     va_end(ap);
     if (len < 0) {
         len = 0;
-    }
-
-    // 输出到tlog
-    if (g_tlog_func) {
-        g_tlog_func(pri, file_name.c_str(), line, function, logid.c_str(),  buff);
-        //g_tlog_func(pri, file, line, function, id, cls, buff);
-        return;
     }
 
     // 因tlog自己补充有'\n'，非tlog需要再补一下
@@ -503,6 +511,8 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
         return;
     }
 
+    AsyncLogging::Instance()->Append(buff);
+/*
     AutoLocker lock(&log_write_mutex);
     // 输出到ERROR文件
     if (pri >= LOG_PRIORITY_ERROR) {
@@ -511,6 +521,8 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
 
     // 输出到log文件
     LogFile::WriteLog(buff, tail);
+*/
+
 }
 
 void Log::Close()

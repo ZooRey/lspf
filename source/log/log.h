@@ -56,6 +56,11 @@ public:
     /// @return id--日志跟踪标识
     static std::string &GetLogId();
 
+
+    void SetLogFilePath(const std::string &file_path);
+
+	void SetLogFileName(const std::string &file_name);
+
     /// @brief 设置输出设备类型
     /// @return 0成功，非0失败
     /// @note 默认为输出到文件
@@ -117,6 +122,29 @@ public:
     static const char* GetSelfName();
 };
 
+
+/// @brief 封装文件操作
+class LogFile {
+public:
+    static void WriteLog(const char* buff, uint32_t len);
+    static void WriteError(const char* buff, uint32_t len);
+    static void Close();
+    static void Flush();
+
+private:
+    static const char* GetFileName(const char* type, int index);
+    static int OpenFile(FILE **file, const char* mode, const char* type, int index);
+    static uint32_t GetLatestRollNum(const char* type);
+    static FILE* LogFD(uint32_t len);
+    static FILE* ErrorFD(uint32_t len);
+
+
+private:
+    static FILE*    m_log;
+    static FILE*    m_error;
+    static uint32_t m_roll_idx_log;
+    static uint32_t m_roll_idx_error;
+};
 
 #define PLOG_FATAL(fmt, ...) lspf::log::Log::Write(lspf::log::LOG_PRIORITY_FATAL, __FILE__, __LINE__, __FUNCTION__, 0, 0, fmt, ##__VA_ARGS__); // NOLINT
 #define PLOG_ERROR(fmt, ...) lspf::log::Log::Write(lspf::log::LOG_PRIORITY_ERROR, __FILE__, __LINE__, __FUNCTION__, 0, 0, fmt, ##__VA_ARGS__); // NOLINT

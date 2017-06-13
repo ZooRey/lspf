@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 
+
 using namespace activemq;
 using namespace activemq::core;
 using namespace activemq::transport;
@@ -31,6 +32,8 @@ using namespace cms;
 
 #include "boost/bind.hpp"
 #include "atmq_driver.h"
+
+#include "log/log.h"
 
 namespace lspf {
 namespace net {
@@ -328,16 +331,16 @@ int ATMQClientHandler::SendTo(const char* msg, size_t msg_len, boost::shared_ptr
 // If something bad happens you see it here as this class is also been
 // registered as an ExceptionListener with the connection.
 void ATMQClientHandler::onException( const CMSException& ex AMQCPP_UNUSED ) {
+    PLOG_ERROR("CMS Exception occurred.  Shutting down client.\n");
     printf("CMS Exception occurred.  Shutting down client.\n");
-    exit(1);
 }
 
 void ATMQClientHandler::transportInterrupted() {
-    std::cout << "The Connection's Transport has been Interrupted." << std::endl;
+    PLOG_ERROR("ATMQClientHandler::transportInterrupted()");
 }
 
 void ATMQClientHandler::transportResumed() {
-    std::cout << "The Connection's Transport has been Restored." << std::endl;
+    PLOG_ERROR("ATMQClientHandler::transportResumed()");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -437,10 +440,12 @@ void ATMQServerHandler::onMessage( const cms::Message* message ) {
 
         boost::shared_ptr<ATMQReply> reply(new ATMQReply);
 
-		reply->correlationID = textMessage->getCMSCorrelationID();
+        reply->correlationID = textMessage->getCMSCorrelationID();
 
-		reply->destSend = (textMessage->getCMSReplyTo())->clone();//static_cast<cms::Destination*>(textMessage->getCMSReplyTo());
-		//Destination *dest= static_cast<cms::Destination*>(textMessage->getCMSReplyTo());
+        const cms::Destination* destSend = textMessage->getCMSReplyTo();
+        if (destSend != NULL){
+            reply->destSend = (textMessage->getCMSReplyTo())->clone();
+        }
 
 		//消息回调处理
 		m_on_message(m_handle, text.c_str(), text.size(), reply);
@@ -478,16 +483,17 @@ int ATMQServerHandler::SendTo(const char* msg, size_t msg_len, boost::shared_ptr
 // If something bad happens you see it here as this class is also been
 // registered as an ExceptionListener with the connection.
 void ATMQServerHandler::onException( const CMSException& ex AMQCPP_UNUSED ) {
-    printf("CMS Exception occurred.  Shutting down client.\n");
-    exit(1);
+    PLOG_ERROR("CMS Exception occurred.  Shutting down client.\n:");
+    printf("CMS Exception occurred.  Shutting down client.\n:");
+    //exit(1);
 }
 
 void ATMQServerHandler::transportInterrupted() {
-    std::cout << "The Connection's Transport has been Interrupted." << std::endl;
+    PLOG_ERROR("ATMQServerHandler::transportInterrupted()");
 }
 
 void ATMQServerHandler::transportResumed() {
-    std::cout << "The Connection's Transport has been Restored." << std::endl;
+    PLOG_ERROR("ATMQServerHandler::transportResumed()");
 }
 
 void ATMQServerHandler::Close(){
