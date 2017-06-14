@@ -17,6 +17,7 @@ set(HEADERS
 	log.h
 	scribe_log.h
 	scribe_log_handler.h
+	async_logging.h
 )
 
 INSTALL(FILES ${HEADERS} DESTINATION ${INCLUDE_OUTPUT_PATH}/log)

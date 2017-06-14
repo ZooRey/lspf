@@ -56,10 +56,15 @@ public:
     /// @return id--日志跟踪标识
     static std::string &GetLogId();
 
+    /// @brief 设置日志文件路径
+    /// @return
+    /// @note 默认为./log
+    static void SetLogFilePath(const std::string &file_path);
 
-    void SetLogFilePath(const std::string &file_path);
-
-	void SetLogFileName(const std::string &file_name);
+    /// @brief 设置日志文件名
+    /// @return
+    /// @note 默认为程序名称
+	static void SetLogFileName(const std::string &file_name);
 
     /// @brief 设置输出设备类型
     /// @return 0成功，非0失败

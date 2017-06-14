@@ -13,9 +13,11 @@
 
 #include <sstream>
 #include <string>
+#include <iostream>
 
 #include "common/mutex.h"
 #include "common/thread_local.h"
+#include "common/time_utility.h"
 #include "async_logging.h"
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
@@ -40,8 +42,7 @@ static LOG_PRIORITY g_log_priority    = LOG_PRIORITY_DEBUG;
 static const char* g_device_str[]   = { "STDOUT", "FILE" };
 static const char* g_priority_str[] = { "TRACE", "DEBUG", "INFO", "ERROR", "FATAL" };
 
-static std::string g_log_file_path;
-static std::string g_log_file_name;
+static char         g_log_file_name[1024] = "";
 
 static const struct {
         int number;
@@ -223,17 +224,23 @@ uint32_t LogFile::m_roll_idx_error  = 0;
 /// @para index 循环索引
 const char* LogFile::GetFileName(const char* type, int index)
 {
+    int len = 0;
     static char file_name[MAX_PATH_LEN] = {0};
-    memset(file_name, 0, ARRAYSIZE(file_name));
-    int len = snprintf(file_name, ARRAYSIZE(file_name),
-        "%s/%s.%s", g_log_file_path.c_str(), g_log_file_name.c_str(), type);
-    //int len = snprintf(file_name, ARRAYSIZE(file_name),
-    //    "%s/%s.%s", g_file_path, Log::GetSelfName(), type);
 
+    memset(file_name, 0, ARRAYSIZE(file_name));
+    if (strlen(g_log_file_name) > 0 ){
+        len = snprintf(file_name, ARRAYSIZE(file_name),
+            "%s/%s.%s", g_file_path, g_log_file_name, type);
+    }else{
+        len = snprintf(file_name, ARRAYSIZE(file_name),
+        "%s/%s.%s", g_file_path, Log::GetSelfName(), type);
+    }
+
+/*
     if (index != 0) {
         snprintf(file_name + len, ARRAYSIZE(file_name) - len, ".%d", index);
     }
-
+*/
     return file_name;
 }
 
@@ -246,14 +253,17 @@ int LogFile::OpenFile(FILE **file, const char* mode, const char* type, int index
     if (!(*file)) {
         fprintf(stderr, "fopen %s:%s failed %s\n", GetFileName(type, index), mode, strerror(errno));
     }
-
+/*
     static char new_file_name[MAX_PATH_LEN] = {0};
     memset(new_file_name, 0, ARRAYSIZE(new_file_name));
     snprintf(new_file_name, ARRAYSIZE(new_file_name),
              "%s/log_current", g_log_file_path.c_str());
 
-    symlink(file_name, new_file_name);
-
+    if ( symlink(file_name, new_file_name) != 0 ){
+        std::cout << "file_name=" << file_name << std::endl;
+        std::cout << "new_file_name=" << new_file_name << std::endl;
+    }
+*/
     return ((*file != NULL) ? 0 : -1);
 }
 
@@ -310,8 +320,21 @@ FILE* LogFile::LogFD(uint32_t len)
     fclose(m_log);
     m_log = NULL;
 
-    ++m_roll_idx_log;
-    m_roll_idx_log = m_roll_idx_log % g_max_roll_num;
+    //++m_roll_idx_log;
+    //m_roll_idx_log = m_roll_idx_log % g_max_roll_num;
+
+    const char *curr_file_name = GetFileName("log", 0);
+
+    static char bak_file_name[MAX_PATH_LEN] = {0};
+
+    memset(bak_file_name, 0, ARRAYSIZE(bak_file_name));
+
+    snprintf(bak_file_name, ARRAYSIZE(bak_file_name),
+            "%s.%s", curr_file_name, TimeUtility::GetStringTime().c_str());
+
+
+    rename(curr_file_name, bak_file_name);
+
     OpenFile(&m_log, "w", "log", m_roll_idx_log);
 
     return m_log;
@@ -340,8 +363,20 @@ FILE* LogFile::ErrorFD(uint32_t len)
     fclose(m_error);
     m_error = NULL;
 
-    ++m_roll_idx_error;
-    m_roll_idx_error = m_roll_idx_error % g_max_roll_num;
+    const char *curr_file_name = GetFileName("error", 0);
+
+    static char bak_file_name[MAX_PATH_LEN] = {0};
+
+    memset(bak_file_name, 0, ARRAYSIZE(bak_file_name));
+
+    snprintf(bak_file_name, ARRAYSIZE(bak_file_name),
+            "%s.%s", curr_file_name, TimeUtility::GetStringTime().c_str());
+
+
+    rename(curr_file_name, bak_file_name);
+
+    //++m_roll_idx_error;
+    //m_roll_idx_error = m_roll_idx_error % g_max_roll_num;
     OpenFile(&m_error, "w", "error", m_roll_idx_error);
 
     return m_error;
@@ -408,7 +443,8 @@ void LogFile::Flush()
 /// @para index 循环索引
 void Log::SetLogFilePath(const std::string &file_path)
 {
-    g_log_file_path = file_path;
+    memset(g_file_path, 0, ARRAYSIZE(g_file_path));
+    snprintf(g_file_path, ARRAYSIZE(g_file_path), "%s", file_path.c_str());
 }
 
 /// @brief 获取日志文件名，日志文件命名规则为:
@@ -418,7 +454,8 @@ void Log::SetLogFilePath(const std::string &file_path)
 /// @para index 循环索引
 void Log::SetLogFileName(const std::string &file_name)
 {
-    g_log_file_name = file_name;
+    memset(g_log_file_name, 0, ARRAYSIZE(g_log_file_name));
+    snprintf(g_log_file_name, ARRAYSIZE(g_log_file_name), "%s", file_name.c_str());
 }
 
 /// @brief 获取当前程序名
