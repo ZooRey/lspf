@@ -62,8 +62,9 @@ void ZkServer::Init(const std::string &zk_hosts, const int timeout)
 {
     m_zk_hosts = zk_hosts;
     m_timeout = timeout;
-
-    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //设置日志级别,避免出现一些其他信息
+    
+    //zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //设置日志级别,避免出现一些其他信息
+    zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR); //设置日志级别,避免出现一些其他信息
 }
 
 
@@ -99,7 +100,7 @@ void ZkServer::Publish()
 void zooCreateCallback(int rc, const char *path, const void *data)
 {
 	ZkServer *zk_server = (ZkServer *)data;
-	if(rc == ZOK ){//&& rc != ZNODEEXISTS){
+	if(rc == ZOK || rc == ZNODEEXISTS){
 		PLOG_INFO("ZkServer create node successfully, path=%s", path);
 	}else{
 		PLOG_ERROR("ZkServer create node failed, path=%s, error=%s", path, zerror(rc));

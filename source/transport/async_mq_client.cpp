@@ -6,25 +6,36 @@
 #include "message/atmq_driver.h"
 #include "log/log.h"
 #include <boost/shared_ptr.hpp>
+#include <boost/bind.hpp>
 using namespace lspf::net;
-
-static BlockingQueue<std::string> send_queue;
-static BlockingQueue<std::string> recv_queue;
 
 AsyncMQClient *AsyncMQClient::m_async_mq_client = NULL;
 
-static int OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
+
+AsyncMQClient::AsyncMQClient() : 
+    m_send_queue(new BlockingQueue<std::string>), 
+    m_recv_queue(new BlockingQueue<std::string>)
+{
+
+}
+
+AsyncMQClient::AsyncMQClient(BlockingQueue<std::string> *recv_queue) : 
+    m_send_queue(new BlockingQueue<std::string>), 
+    m_recv_queue(recv_queue)
+{
+    
+}
+
+int AsyncMQClient::OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
 {
     PLOG_INFO("Get Message form MQ, length=%d, content=%s", message_len, message);
-    recv_queue.PushBack(std::string(message, message_len));
+    m_recv_queue->PushBack(std::string(message, message_len));
 
     return 0;
 }
 
 bool AsyncMQClient::Init(std::string &brokerURI, std::string &destURI, bool need_reply, bool use_topic)
 {
-    static ATMQDriver *m_atmqdriver;
-
     bool clientAck = true;
 
     m_client_handle = lspf::net::Message::NewHandle();
@@ -34,7 +45,7 @@ bool AsyncMQClient::Init(std::string &brokerURI, std::string &destURI, bool need
     m_atmqdriver->Init(MessageDriver::MESSAGE_CLIENT);
 
     if (need_reply){
-        m_atmqdriver->SetOnMessage(OnAsyncMessage);
+        m_atmqdriver->SetOnMessage(boost::bind(&AsyncMQClient::OnAsyncMessage, this, _1, _2, _3, _4));
     }
 
     lspf::net::Message::RegisterDriver(m_atmqdriver);
@@ -47,7 +58,7 @@ void AsyncMQClient::Run()
 {
 	std::string send_buff;
 	while(1){
-        send_queue.PopFront(&send_buff);
+        m_send_queue->PopFront(&send_buff);
 
          ///发送数据到消息队列
         lspf::net::Message::Send(m_client_handle, send_buff.c_str(), send_buff.size());
@@ -58,15 +69,15 @@ void AsyncMQClient::Run()
 
 bool AsyncMQClient::SendToQueue(const std::string &send_message)
 {
-    return send_queue.TryPushBack(send_message);
+    return m_send_queue->TryPushBack(send_message);
 }
 
 void AsyncMQClient::RecvFromQueue(std::string &recv_message)
 {
-    recv_queue.PopFront(&recv_message);
+    m_recv_queue->PopFront(&recv_message);
 }
 
 bool AsyncMQClient::TimedRecvFromQueue(const int timeout, std::string &recv_message)
 {
-    return recv_queue.TimedPopFront(&recv_message, timeout);
+    return m_recv_queue->TimedPopFront(&recv_message, timeout);
 }

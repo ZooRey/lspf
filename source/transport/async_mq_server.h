@@ -43,6 +43,20 @@ public:
     /// @param use_topic 是否为主题模式
     /// @return true成功 false失败
     bool Init(std::string &brokerURI, std::string &destURI, bool need_reply=true, bool use_topic=false);
+
+    void StartService();
+
+    void StopService();
+
+    /// @brief 设置通讯超时时间
+    /// @param timeout 通讯超时时间（秒）
+    /// @return 无
+    void SetTimeout(const int timeout);
+
+    /// @brief 设置最大处理消息数
+    /// @param max_num 最大处理消息数
+    /// @return 无
+    void SetMaxMessageSize(const int max_size);
 /*
     /// @brief 发送消息到队列（生产者使用）
     /// @param send_message 发送数据
@@ -84,23 +98,33 @@ public:
     /// @return 无
     void SetWaitFunction(WaitFunction func);
 
-public:
+    int OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply);
+private:
     std::string GenSessionId();
 
     bool SaveSession(const std::string &session_id, boost::shared_ptr<MessageReply> reply);
 
     bool GetSession(const std::string &session_id, boost::shared_ptr<MessageReply> *reply);
-	
-	WaitFunction waitFun;
-	
+
 private:
-    AsyncMQServer() : waitFun(NULL), m_need_reply(true)
+    AsyncMQServer() : m_server_handle(-1),
+                      m_session_timeout(60),
+                      m_max_message_size(100),
+                      m_need_reply(false),
+                      m_driver_staus(false), 
+                      m_atmqdriver(NULL),
+                      m_waitFun(NULL)
     {
 
     }
+    int m_server_handle;
+    int m_session_timeout;
+    int m_max_message_size;
 
     bool m_need_reply;
-    int m_server_handle;
+    bool m_driver_staus;
+    ATMQDriver *m_atmqdriver;
+    WaitFunction m_waitFun;
 
     static AsyncMQServer *m_async_mq_server;
 };

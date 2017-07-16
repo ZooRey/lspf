@@ -69,7 +69,8 @@ void ZkClient::Init(const std::string &zk_hosts, const std::string &service_name
 
     StringUtility::Split(service_name_list, ",", &m_service_name_list);
 
-    zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //设置日志级别,避免出现一些其他信息
+    //zoo_set_debug_level(ZOO_LOG_LEVEL_WARN); //设置日志级别,避免出现一些其他信息
+    zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR); //设置日志级别,避免出现一些其他信息
 
     std::vector<std::string>::iterator it = m_service_name_list.begin();
     for (; it != m_service_name_list.end(); ++it){

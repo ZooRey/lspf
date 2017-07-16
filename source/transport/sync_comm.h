@@ -2,9 +2,43 @@
 #define SYNC_COMM_H
 
 #include "common/thread.h"
-#include "comm_session.h"
+#include "session_cache.h"
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/future.hpp>
 #include <string>
+
+class FutureSession
+{
+public:
+    FutureSession():is_wait(false), m_future(m_promise.get_future()){}
+    ~FutureSession(){
+        try{
+            if (is_wait){
+                m_promise.set_value("");
+            }
+        }catch(...){
+
+        }
+    }
+
+    void SetValue(const std::string &value){
+        m_promise.set_value(value);
+    }
+
+    std::string GetValue(){
+        is_wait = true;
+        m_future.wait();
+        is_wait = false;
+        return m_future.get();
+    }
+
+private:
+    bool is_wait;
+    boost::promise<std::string> m_promise;
+    boost::unique_future<std::string> m_future;
+};
+
+typedef boost::shared_ptr<FutureSession> FutureSessionPtr;
 
 class SyncComm : public Thread
 {
@@ -26,7 +60,7 @@ private:
 
 private:
     int m_timeout;
-	SessionCache<CommSessionPtr> m_session_cache;
+	SessionCache<FutureSessionPtr, std::string> m_session_cache;
 
 	static SyncComm* instance_;
 };

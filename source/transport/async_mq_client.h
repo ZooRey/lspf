@@ -2,12 +2,17 @@
 #define ASYNC_MQ_CLIENT
 
 #include "common/thread.h"
+
+#include "common/condition_variable.h"
+#include "common/blocking_queue.h"
+#include "message/message.h"
+#include "message/atmq_driver.h"
+
 #include <string>
-
-
 class AsyncMQClient : public Thread
 {
 public:
+
     static AsyncMQClient *Instance(){
         if (m_async_mq_client == NULL){
             m_async_mq_client = new AsyncMQClient;
@@ -15,39 +20,46 @@ public:
         return m_async_mq_client;
     }
 
+    AsyncMQClient();
+
+    AsyncMQClient(BlockingQueue<std::string> *recv_queue);
+
     virtual ~AsyncMQClient(){}
 
-    /// @brief Æô¶¯Ïß³Ì
+    /// @brief å¯åŠ¨çº¿ç¨‹
     virtual void Run();
 
-    /// @brief ³õÊ¼»¯¶ÓÁĞ
-    /// @param brokerURI ·şÎñµØÖ·
-    /// @param destURI ¶ÓÁĞÃû³Æ
-    /// @param need_reply ÊÇ·ñĞèÒªÓ¦´ğ
-    /// @param use_topic ÊÇ·ñÎªÖ÷ÌâÄ£Ê½
-    /// @return true³É¹¦ falseÊ§°Ü
+    /// @brief åˆå§‹åŒ–é˜Ÿåˆ—
+    /// @param brokerURI æœåŠ¡åœ°å€
+    /// @param destURI é˜Ÿåˆ—åç§°
+    /// @param need_reply æ˜¯å¦éœ€è¦åº”ç­”
+    /// @param use_topic æ˜¯å¦ä¸ºä¸»é¢˜æ¨¡å¼
+    /// @return trueæˆåŠŸ falseå¤±è´¥
     bool Init(std::string &brokerURI, std::string &destURI, bool need_reply=true, bool use_topic=false);
 
-    /// @brief ·¢ËÍÏûÏ¢µ½¶ÓÁĞ
-    /// @param send_message ·¢ËÍÊı¾İ
-    /// @return true³É¹¦ falseÊ§°Ü
+    /// @brief å‘é€æ¶ˆæ¯åˆ°é˜Ÿåˆ—
+    /// @param send_message å‘é€æ•°æ®
+    /// @return trueæˆåŠŸ falseå¤±è´¥
     bool SendToQueue(const std::string &send_message);
 
-    /// @brief ×èÈûÊ½´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Òì²½RPCÊ¹ÓÃ£©
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return ÎŞ
+    /// @brief é˜»å¡å¼ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆå¼‚æ­¥RPCä½¿ç”¨ï¼‰
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return æ— 
     void RecvFromQueue(std::string &recv_message);
 
-    /// @brief ´ÓÏûÏ¢¶ÓÁĞ½ÓÊÕÊı¾İ£¨Òì²½RPCÊ¹ÓÃ£©
-    /// @param timeout ½ÓÊÕ³¬Ê±Ê±¼ä
-    /// @param recv_message ½ÓÊÕÊı¾İ
-    /// @return true³É¹¦ false³¬Ê±ÎŞÊı¾İ
+    /// @brief ä»æ¶ˆæ¯é˜Ÿåˆ—æ¥æ”¶æ•°æ®ï¼ˆå¼‚æ­¥RPCä½¿ç”¨ï¼‰
+    /// @param timeout æ¥æ”¶è¶…æ—¶æ—¶é—´
+    /// @param recv_message æ¥æ”¶æ•°æ®
+    /// @return trueæˆåŠŸ falseè¶…æ—¶æ— æ•°æ®
     bool TimedRecvFromQueue(const int timeout, std::string &recv_message);
 
+    int OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<lspf::net::MessageReply> reply);
 private:
-    AsyncMQClient(){}
-
     int m_client_handle;
+    BlockingQueue<std::string> *m_send_queue;
+    BlockingQueue<std::string> *m_recv_queue;
+
+    lspf::net::ATMQDriver *m_atmqdriver;
 
     static AsyncMQClient *m_async_mq_client;
 };

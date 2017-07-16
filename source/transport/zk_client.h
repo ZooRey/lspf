@@ -29,7 +29,7 @@ public:
     int GetServerInfo(const std::string &service_name, int &port, std::string &ip);
 
     int GetAllServerInfos(const std::string &service_name, std::vector<std::string> &server_info_lst);
-
+ 
 	bool GetConnState()
 	{
 		AutoLocker locker(&m_mutex_conn_state);
