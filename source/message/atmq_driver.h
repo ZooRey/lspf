@@ -27,6 +27,12 @@ public:
 
     virtual int Run(int handle, SendToFunction *send_to);
 
+    /// @brief 启动服务
+    virtual int Start();
+
+    /// @brief 停止服务
+    virtual int Stop();
+
     virtual int Close();
 
     virtual std::string Name() {

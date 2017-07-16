@@ -158,6 +158,50 @@ int Message::Send(int handle, const char* msg, size_t msg_len) {
     }
 }
 
+int Message::Start(int handle) {
+    if (all_handles.find(handle) == all_handles.end()) { // invalid handle
+        NET_LIB_ERR_RETURN("Handle Invalid");
+    }
+
+    map<int, MessageDriver*>::iterator iter = handle_to_driver.find(handle);
+
+    if (iter == handle_to_driver.end()) { // unused handle
+        all_handles.erase(handle);
+        deallocHandle(handle);
+        return 0;
+    }
+
+    int ret = iter->second->Start();
+
+    if (0 != ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+int Message::Stop(int handle) {
+    if (all_handles.find(handle) == all_handles.end()) { // invalid handle
+        NET_LIB_ERR_RETURN("Handle Invalid");
+    }
+
+    map<int, MessageDriver*>::iterator iter = handle_to_driver.find(handle);
+
+    if (iter == handle_to_driver.end()) { // unused handle
+        all_handles.erase(handle);
+        deallocHandle(handle);
+        return 0;
+    }
+
+    int ret = iter->second->Stop();
+
+    if (0 != ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
 int Message::Close(int handle) {
     if (all_handles.find(handle) == all_handles.end()) { // invalid handle
         NET_LIB_ERR_RETURN("Handle Invalid");

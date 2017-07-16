@@ -44,7 +44,20 @@ public:
     /// @return 非0 表示失败
     static int Send(int handle, const char* msg, size_t msg_len); // Client only
 
-    /// @brief 关闭句柄
+
+    /// @brief 启动句柄
+    /// @param handle 由NewHandle返回
+    /// @return 0 表示成功
+    /// @return 非0 表示失败
+    static int Start(int handle);
+
+    /// @brief 启动句柄
+    /// @param handle 由NewHandle返回
+    /// @return 0 表示成功
+    /// @return 非0 表示失败
+    static int Stop(int handle);
+
+    /// @brief 停止句柄
     /// @param handle 由NewHandle返回
     /// @return 0 表示成功
     /// @return 非0 表示失败

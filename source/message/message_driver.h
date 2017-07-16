@@ -38,6 +38,12 @@ public:
 
     virtual int Run(int handle, SendToFunction *send_to) = 0;
 
+    /// @brief 启动服务
+    virtual int Start(){ return 0;}
+
+    /// @brief 停止服务
+    virtual int Stop(){ return 0;}
+
     /// @brief 关闭网络驱动
     virtual int Close() = 0;
 

@@ -49,6 +49,12 @@ public:
 
 	virtual int SendTo(const char* msg, size_t msg_len, boost::shared_ptr<MessageReply> reply_addr) = 0;
 
+    /// @brief 启动服务
+    virtual int Start(){ return 0; }
+
+    /// @brief 停止服务
+    virtual int Stop(){ return 0; }
+
     void SetHandle(int handle){
         m_handle = handle;
     }
@@ -148,6 +154,11 @@ public:
 
 	virtual int SendTo(const char* msg, size_t msg_len, boost::shared_ptr<MessageReply> reply_addr);
 
+    /// @brief 启动服务
+    virtual int Start();
+
+    /// @brief 停止服务
+    virtual int Stop();
 private:
     Connection* connection;
     Session* session;
@@ -431,10 +442,6 @@ void ATMQServerHandler::onMessage( const cms::Message* message ) {
             //记录错误消息日志
         }
 
-        if( clientAck ) {
-            message->acknowledge();
-        }
-
 		//int nProPerty=textMessage->getIntProperty("Integer");
 		//printf("consumer Message #%d Received: %s,nProPerty[%d]\n", count, text.c_str(),nProPerty);
 
@@ -447,8 +454,12 @@ void ATMQServerHandler::onMessage( const cms::Message* message ) {
             reply->destSend = (textMessage->getCMSReplyTo())->clone();
         }
 
+        if( clientAck ) {
+            message->acknowledge();
+        }
 		//消息回调处理
 		m_on_message(m_handle, text.c_str(), text.size(), reply);
+
 
 	} catch (CMSException& e) {
 		e.printStackTrace();
@@ -468,7 +479,7 @@ int ATMQServerHandler::SendTo(const char* msg, size_t msg_len, boost::shared_ptr
 		rspMessage->setCMSCorrelationID(reply->correlationID);
 
 		const cms::Destination* destSend = reply->destSend;
-		if(destSend)
+		if(this->producer && destSend)
 		{
 			this->producer->send(destSend, rspMessage.get());
 		}
@@ -495,7 +506,17 @@ void ATMQServerHandler::transportInterrupted() {
 void ATMQServerHandler::transportResumed() {
     PLOG_ERROR("ATMQServerHandler::transportResumed()");
 }
+/// @brief 启动服务
+int ATMQServerHandler::Start(){
+    Run();
+    return 0;
+}
 
+/// @brief 停止服务
+int ATMQServerHandler::Stop(){
+    Close();
+    return 0;
+}
 void ATMQServerHandler::Close(){
 
     try{
@@ -601,6 +622,19 @@ int ATMQDriver::Close(){
 	m_atmq_handler->Close();
 	return 0;
 }
+
+int ATMQDriver::Start()
+{
+    m_atmq_handler->Start();
+    return 0;
+}
+
+int ATMQDriver::Stop()
+{
+    m_atmq_handler->Stop();
+    return 0;
+}
+
 
 void ATMQDriver::Install(){
     activemq::library::ActiveMQCPP::initializeLibrary();

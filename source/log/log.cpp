@@ -441,18 +441,7 @@ void LogFile::Flush()
 ///    idx为0 : filename.log/filename.error
 /// @para type "log"/"error"
 /// @para index 循环索引
-void Log::SetLogFilePath(const std::string &file_path)
-{
-    memset(g_file_path, 0, ARRAYSIZE(g_file_path));
-    snprintf(g_file_path, ARRAYSIZE(g_file_path), "%s", file_path.c_str());
-}
-
-/// @brief 获取日志文件名，日志文件命名规则为:
-///    idx非0 : filename.log.idx/filename.error.idx
-///    idx为0 : filename.log/filename.error
-/// @para type "log"/"error"
-/// @para index 循环索引
-void Log::SetLogFileName(const std::string &file_name)
+void Log::SetFileName(const std::string &file_name)
 {
     memset(g_log_file_name, 0, ARRAYSIZE(g_log_file_name));
     snprintf(g_log_file_name, ARRAYSIZE(g_log_file_name), "%s", file_name.c_str());
@@ -539,7 +528,7 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
         tail = ARRAYSIZE(buff) - 2;
     }
 
-    buff[tail++] = '\n';
+    //buff[tail++] = '\n';
     buff[tail] = '\0';
 
     // 输出到stdout

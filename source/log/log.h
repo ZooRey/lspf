@@ -56,16 +56,6 @@ public:
     /// @return id--日志跟踪标识
     static std::string &GetLogId();
 
-    /// @brief 设置日志文件路径
-    /// @return
-    /// @note 默认为./log
-    static void SetLogFilePath(const std::string &file_path);
-
-    /// @brief 设置日志文件名
-    /// @return
-    /// @note 默认为程序名称
-	static void SetLogFileName(const std::string &file_name);
-
     /// @brief 设置输出设备类型
     /// @return 0成功，非0失败
     /// @note 默认为输出到文件
@@ -104,6 +94,11 @@ public:
     /// @return 0成功，非0失败
     /// @note 默认写到当前目录下
     static int SetFilePath(const std::string& file_path);
+
+    /// @brief 设置日志文件名
+    /// @return
+    /// @note 默认为程序名称
+	static void SetFileName(const std::string &file_name);
 
     /// @brief 写log接口
     /// @para id,cls，兼容tlog(根据id和cls过滤用)
