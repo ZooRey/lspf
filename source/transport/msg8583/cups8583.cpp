@@ -13,7 +13,7 @@ const unsigned int key_field_array[] = {7, 11, 32, 33};
 //管理类交易的MAC域
 const unsigned int mgmt_mac_field_array[] = {7, 11, 39, 53, 70, 100};
 //其他类交易的MAC域
-const unsigned int other_mac_field_array[] = {2, 3, 4, 7, 11, 18, 25, 28, 32, 33, 38, 41, 42, 90, 102, 103};
+const unsigned int other_mac_field_array[] = {2, 3, 4, 7, 11, 18, 25, 28, 32, 33, 38, 39, 41, 42, 90, 102, 103};
 //
 const unsigned int cups8583_style_array[BITMAP_LEN*8] =
 {

@@ -33,12 +33,6 @@ int AsyncMQServer::OnAsyncMessage(int handle, const char *message, size_t messag
     trans_message.msg_id = GenSessionId();
     trans_message.msg_buffer = std::string(message, message_len);
 
-    if(m_waitFun){
-        while(!m_waitFun()){
-            usleep(100);
-        }
-    }
-
     if (m_need_reply){
 /*
         while (mq_server_session_cache.Size() >= m_max_message_size){
@@ -49,6 +43,16 @@ int AsyncMQServer::OnAsyncMessage(int handle, const char *message, size_t messag
     }
 
     server_recv_queue.PushBack(trans_message);
+
+    if(m_waitFun){
+        while(!m_waitFun()){
+            usleep(100);
+        }
+    }
+
+    while(!m_driver_staus){
+        sleep(1);
+    }
 
     return 0;
 }
@@ -90,8 +94,9 @@ void AsyncMQServer::StartService()
 void AsyncMQServer::StopService()
 {
     if (m_atmqdriver != NULL){
-        m_atmqdriver->Stop();
         m_driver_staus = false;
+        sleep(5);  //休眠60秒
+        m_atmqdriver->Stop();
     }
 }
 

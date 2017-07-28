@@ -52,6 +52,7 @@ private:
     ZkServer();
     ~ZkServer();
 
+    std::string GetLocalIpAddress();
 private:
     bool m_connected;
     zhandle_t *m_zhandle;

@@ -8,10 +8,15 @@
 #include <vector>
 #include <iostream>
 
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 using namespace std;
 
 #define ZK_MAX_CONNECT_TIMES 100
-
 
 void InitWatcher(zhandle_t *zh, int type, int state, const char *path, void *watcher_ctx) {
 
@@ -109,14 +114,34 @@ void zooCreateCallback(int rc, const char *path, const void *data)
 	}
 }
 
+std::string ZkServer::GetLocalIpAddress()
+{
+    struct sockaddr_in local_addr;
+    socklen_t local_addr_len = sizeof(local_addr);
+
+    char local_ip[64] = {0};
+
+    int socket_id = *(int*)m_zhandle;
+
+    getsockname(socket_id, (struct sockaddr *)&local_addr, &local_addr_len);
+    inet_ntop(AF_INET, &local_addr.sin_addr, local_ip, sizeof(local_ip));
+
+    return std::string(local_ip);
+}
+
 //发布服务，建立临时节点
 void ZkServer::Register()
 {
 	if(m_connected)
 	{
+        if(m_data.substr(0, 9) == "localhost")
+        {
+            m_data = GetLocalIpAddress() + m_data.substr(9);
+        }
+
 		string server_path = "/" + m_service_name + "/" + m_data;
 
-		PLOG_ERROR("zookeeper Register start...");
+		PLOG_ERROR("zookeeper Register start, server_path=%s", server_path.c_str());
 
 		int rc = zoo_acreate(m_zhandle, server_path.c_str(), "", 0, &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL, zooCreateCallback, this);
 		if(rc)
