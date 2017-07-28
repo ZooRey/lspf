@@ -17,6 +17,7 @@
 
 #include <string>
 #include <vector>
+#include <stdint.h>
 
 class StringUtility {
 public:
@@ -71,6 +72,12 @@ public:
     /// @return 成功:ip字符串
     /// @return 失败:""
     static std::string IPLongToString(unsigned long ip);
+	
+	/**
+	 * long long转换为string
+	 * 单位为分
+	 */
+	static std::string ToStringAmount(int64_t d);
 };
 
 #endif // _COMMON_STRING_UTILITY_H_

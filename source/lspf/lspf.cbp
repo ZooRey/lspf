@@ -33,6 +33,7 @@
 		<Unit filename="../../sample/dbclient/DBClient.cpp" />
 		<Unit filename="../../sample/dbclient/db_test.cpp" />
 		<Unit filename="../../sample/json/json.cpp" />
+		<Unit filename="../../sample/log/local_log.cpp" />
 		<Unit filename="../../sample/log/scribe_log.cpp" />
 		<Unit filename="../../sample/message/atmq_client.cpp" />
 		<Unit filename="../../sample/message/atmq_server.cpp" />
@@ -348,7 +349,6 @@
 		<Unit filename="../transport/async_mq_client.h" />
 		<Unit filename="../transport/async_mq_server.cpp" />
 		<Unit filename="../transport/async_mq_server.h" />
-		<Unit filename="../transport/comm_session.h" />
 		<Unit filename="../transport/session_cache.h" />
 		<Unit filename="../transport/sync_comm.cpp" />
 		<Unit filename="../transport/sync_comm.h" />

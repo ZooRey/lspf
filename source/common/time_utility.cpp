@@ -26,7 +26,7 @@ std::string TimeUtility::GetStringTime(const std::string &strSplit)
     char buff[256] = {0};
     if (strSplit == "-")
     {
-    	strFormat = "%04d-%02d-%02d% 02d:%02d:%02d";
+    	strFormat = "%04d-%02d-%02d %02d:%02d:%02d";
     }
     else
     {

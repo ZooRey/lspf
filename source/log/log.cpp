@@ -70,7 +70,7 @@ static std::string GetTimeStamp()
     now = (time_t)tv_now.tv_sec;
     p_tm_now = localtime_r(&now, &tm_now);
 
-    snprintf(buff, ARRAYSIZE(buff), "%04d%02d%02d %02d:%02d:%02d.%06d",
+    snprintf(buff, ARRAYSIZE(buff), "%04d-%02d-%02d %02d:%02d:%02d %06d",
         1900 + p_tm_now->tm_year,
         p_tm_now->tm_mon + 1,
         p_tm_now->tm_mday,
@@ -117,10 +117,10 @@ int MakeDir(const char* path)
         return 0;
     }
 
-    fprintf(stderr, "access %s failed(%s)\n", path, strerror(errno));
+    //fprintf(stderr, "access %s failed(%s)\n", path, strerror(errno));
 
     if (mkdir(path, 0755) != 0) {
-        fprintf(stderr, "mkdir %s failed(%s)\n", path, strerror(errno));
+        //fprintf(stderr, "mkdir %s failed(%s)\n", path, strerror(errno));
         return -1;
     }
 
@@ -148,7 +148,7 @@ int MakeDirs(const char* path)
 
         tmp[i] = '\0';
         if (MakeDir(tmp) != 0) {
-            return -1;
+            continue;
         }
         tmp[i] = '/';
     }
@@ -253,6 +253,7 @@ int LogFile::OpenFile(FILE **file, const char* mode, const char* type, int index
     if (!(*file)) {
         fprintf(stderr, "fopen %s:%s failed %s\n", GetFileName(type, index), mode, strerror(errno));
     }
+
 /*
     static char new_file_name[MAX_PATH_LEN] = {0};
     memset(new_file_name, 0, ARRAYSIZE(new_file_name));
@@ -263,7 +264,8 @@ int LogFile::OpenFile(FILE **file, const char* mode, const char* type, int index
         std::cout << "file_name=" << file_name << std::endl;
         std::cout << "new_file_name=" << new_file_name << std::endl;
     }
-*/
+*/  
+
     return ((*file != NULL) ? 0 : -1);
 }
 
@@ -305,7 +307,10 @@ FILE* LogFile::LogFD(uint32_t len)
         if (MakeDirs(g_file_path) == 0) {
             m_roll_idx_log = GetLatestRollNum("log");
             OpenFile(&m_log, "a", "log", m_roll_idx_log);
+        }else{
+            OpenFile(&m_log, "a", "log", m_roll_idx_log);
         }
+        
     }
     if (!m_log) {
         return NULL;
@@ -347,6 +352,8 @@ FILE* LogFile::ErrorFD(uint32_t len)
     if (!m_error) {
         if (MakeDirs(g_file_path) == 0) {
             m_roll_idx_error = GetLatestRollNum("error");
+            OpenFile(&m_error, "a", "error", m_roll_idx_error);
+        }else{
             OpenFile(&m_error, "a", "error", m_roll_idx_error);
         }
     }
@@ -488,7 +495,12 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
     if (pri < g_log_priority) {
         return;
     }
+    
     std::string logid = GetLogId();
+    if (logid.empty()){
+        logid = "default";
+    }
+
     char buff[4096] = {0};
 
     std::string file_name(file);
@@ -642,6 +654,7 @@ int Log::SetFilePath(const std::string& file_path)
     }
 
     if (MakeDirs(file_path.c_str()) != 0) {
+        fprintf(stderr, "mkdir %s failed %s\n", file_path.c_str(), strerror(errno));
         return -2;
     }
 

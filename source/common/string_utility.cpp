@@ -429,3 +429,20 @@ std::string StringUtility::IPLongToString(unsigned long IP)
 	return std::string(buf);
 }
 
+/**
+ * long long转换为string
+ * 单位为分
+ */
+std::string StringUtility::ToStringAmount(int64_t d) 
+{
+    std::ostringstream os;
+	
+    int prec=12; // 18
+    os.precision(prec);
+    os.width(12);
+    os.fill('0');
+    if (os << d)
+        return os.str();
+	
+    return "";
+}
