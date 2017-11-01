@@ -49,11 +49,11 @@ int AsyncMQServer::OnAsyncMessage(int handle, const char *message, size_t messag
             usleep(100);
         }
     }
-
+/*
     while(!m_driver_staus){
         sleep(1);
     }
-
+*/
     return 0;
 }
 

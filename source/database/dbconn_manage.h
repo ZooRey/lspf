@@ -80,6 +80,9 @@ public:
 	void fini();
 
 private:
+    bool DecryptPwd(std::string &passwd);
+    
+private:
 	Environment * m_env;
 	std::vector<DBConnPool *> m_vecPool;
 };

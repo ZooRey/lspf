@@ -19,7 +19,7 @@ using namespace std;
 
 DBCommand::DBCommand(const int index)
                     : m_index(index),
-                      bAutoCommit(true),
+                      bAutoCommit(false),
                       m_statement(NULL),
                       m_result_set(NULL),
                       m_connection(NULL),
@@ -135,6 +135,9 @@ Statement *DBCommand::getStatement()
 	}else{
         closeResultSet();
 	}
+
+    ///初始设置为不自动提交
+    m_statement->setAutoCommit(false);
 
 	return m_statement;
 }

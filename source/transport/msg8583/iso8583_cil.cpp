@@ -1,4 +1,4 @@
-#include "iso8583.h"
+#include "iso8583_cil.h"
 #include "common/app_conf.h"
 #include "common/string_utility.h"
 #include "log/log.h"
@@ -8,10 +8,10 @@
 #include <iostream>
 using namespace std;
 
-//Óò11ÓëÓò7¡¢Óò32ºÍÓò33µÄ×éºÏÖµÎ¨Ò»±êÊ¶Ò»±Ê½»Ò×µÄ±àºÅ
-const unsigned int key_field_array[] = {7, 11, 32, 33};
+//域11与域41、域42和域60.2域组合值唯一标识一笔交易的编号
+const unsigned int key_field_array[] = {11, 41, 42};
 //
-const unsigned int iso8583_style_array[BITMAP_LEN*8] =
+const unsigned int ISO8583_CIL_style_array[BITMAP_LEN*8] =
 {
 /*
 **    BULL/ISO Bitmap expression
@@ -22,7 +22,7 @@ const unsigned int iso8583_style_array[BITMAP_LEN*8] =
 /*
 **   17 25   18 26   19 27   20 28   21 29   22 30   23 31   24 32
 */
-     0x0204, 0x0204, 0x0203, 0x0203, 0x0203, 0x0203, 0x0204, 0x0203,
+     0x0204, 0x0204, 0x0203, 0x0203, 0x0203, 0x0203, 0x0203, 0x0203,
     0x0202, 0x0202, 0x0201, 0x0308, 0x0308, 0x0308, 0x0208, 0x820b,
 /*
 **   33 41   34 42  35 43    36 44   37 45   38 46   39 47   40 48
@@ -32,31 +32,33 @@ const unsigned int iso8583_style_array[BITMAP_LEN*8] =
 /*
 **   49 57   50 58   51 59   52 60   53 61   54 62   55 63   56 64
 */
-    0x0303, 0x0203, 0x0203, 0x0808, 0x0210, 0x83b4, 0x8800, 0x8700,
+    0x0303, 0x0203, 0x0303, 0x0808, 0x0210, 0x83b4, 0x8800, 0x8700,
     0x8700, 0x8700, 0x8700, 0x8200, 0x8200, 0x8800, 0x87b3, 0x0308
 };
 
-ISO8583::ISO8583()
+ISO8583_CIL::ISO8583_CIL()
 {
-    m_vec_item_style.assign(iso8583_style_array, iso8583_style_array + BITMAP_LEN*8);
+    m_vec_item_style.assign(ISO8583_CIL_style_array, ISO8583_CIL_style_array + BITMAP_LEN*8);
 }
 
-ISO8583::~ISO8583()
+ISO8583_CIL::~ISO8583_CIL()
 {
 
 }
 
-string ISO8583::GetInfo()
+string ISO8583_CIL::GetInfo()
 {
-    return "ISO8583V20170713";
+    return "ISO8583_CILV20171019";
 }
+
+
 /////////////////////////////////////////////////////
-void ISO8583::getStyle(ItemStyle &item_style, unsigned int index)
+void ISO8583_CIL::getStyle(ItemStyle &item_style, unsigned int index)
 {
     unsigned int tmp_item_style = m_vec_item_style[index];
 
-    item_style.type =(unsigned int)(tmp_item_style / 0x100);
-    item_style.max_len = tmp_item_style % 0x100;
+    item_style.type =(unsigned int)(tmp_item_style / 0x100);//高2位为type
+    item_style.max_len = tmp_item_style % 0x100;//低2位位max_len
 
     if (item_style.type < 0x80)
     {
@@ -74,7 +76,7 @@ void ISO8583::getStyle(ItemStyle &item_style, unsigned int index)
     }
 }
 
-int ISO8583::decoding(unsigned int index, unsigned int &offset, const ItemStyle &item_style, string &dest)
+int ISO8583_CIL::decoding(unsigned int index, unsigned int &offset, const ItemStyle &item_style, string &dest)
 {
     int i_item_len = 0;
     int i_item_len_bcd = 0;
@@ -83,7 +85,7 @@ int ISO8583::decoding(unsigned int index, unsigned int &offset, const ItemStyle 
     string item_value;
     string mac_field_data;
 
-    //»ñÈ¡Óò³¤¶È×Ö·û´®
+    //获取域长度字符串
     switch (item_style.var)
     {
         case 0:
@@ -163,7 +165,7 @@ int ISO8583::decoding(unsigned int index, unsigned int &offset, const ItemStyle 
     return 0;
 }
 
-int ISO8583::encoding(unsigned int index, const string &src, const ItemStyle &item_style, string &dest)
+int ISO8583_CIL::encoding(unsigned int index, const string &src, const ItemStyle &item_style, string &dest)
 {
     int i_item_len = 0;
     char c_len_buff[4+1] = {0};
@@ -178,7 +180,7 @@ int ISO8583::encoding(unsigned int index, const string &src, const ItemStyle &it
         return -1;
     }
 
-    //»ñÈ¡Óò³¤¶È×Ö·û´®
+    //获取域长度字符串
     switch (item_style.var)
     {
         case 0:
@@ -205,7 +207,7 @@ int ISO8583::encoding(unsigned int index, const string &src, const ItemStyle &it
             break;
     }
 
-    //¸ù¾ÝÓòÀàÐÍ²»Í¬´¦ÀíASC»òBCD±àÂë
+    //根据域类型不同处理ASC或BCD编码
     switch (item_style.type)
     {
         case _8583_Binary:
@@ -227,7 +229,7 @@ int ISO8583::encoding(unsigned int index, const string &src, const ItemStyle &it
     return 0;
 }
 
-void ISO8583::dealMsgHeader(const string &header)
+void ISO8583_CIL::dealMsgHeader(const string &header)
 {
     if (header.size() == HEADER_LEN)
     {
@@ -236,14 +238,13 @@ void ISO8583::dealMsgHeader(const string &header)
         m_vec_field.push_back(header.substr(6, 4));
         m_vec_field.push_back(header.substr(10, 2));
         m_vec_field.push_back(header.substr(12, 2));
-        m_vec_field.push_back(header.substr(14, 2));
-        m_vec_field.push_back(header.substr(16, 1));
-        m_vec_field.push_back(header.substr(17, 1));
-        m_vec_field.push_back(header.substr(18, 6));
+        m_vec_field.push_back(header.substr(14, 1));
+        m_vec_field.push_back(header.substr(15, 1));
+        m_vec_field.push_back(header.substr(16, 6));
     }
 }
 
-void ISO8583::InitHeader()
+void ISO8583_CIL::InitHeader()
 {
     m_vec_field.clear();
 
@@ -252,13 +253,12 @@ void ISO8583::InitHeader()
     m_vec_field.push_back(string(4, 0x30));
     m_vec_field.push_back(string(2, 0x30));
     m_vec_field.push_back(string(2, 0x30));
-    m_vec_field.push_back(string(2, 0x30));
     m_vec_field.push_back(string(1, 0x30));
     m_vec_field.push_back(string(1, 0x30));
     m_vec_field.push_back(string(6, 0x30));
 }
 
-int ISO8583::Pack(string &msg, bool mac_flag)
+int ISO8583_CIL::Pack(string &msg, bool mac_flag)
 {
     int ret = 0;
     string header;
@@ -273,7 +273,7 @@ int ISO8583::Pack(string &msg, bool mac_flag)
     StringUtility::asc2bcd_l(m_msg_type, msg_type_bcd);
     m_mac_data = msg_type_bcd;
 
-    //¼ÆËãÎ»Í¼Êý¾Ý
+    //计算位图数据
     if (mac_flag)
     {
         m_bitset_bitmap.set(BITMAP_LEN*8-1);
@@ -299,16 +299,11 @@ int ISO8583::Pack(string &msg, bool mac_flag)
         {
             hex = it->second;
         }
-
-        if (it->first==2 || it->first==14 || it->first==35 || it->first==36 || it->first==52){
-            hex.assign(hex.size(), '*');
-        }
-
         PLOG_INFO("%03d:%s", it->first, hex.c_str());
         m_content += item_buff;
     }
 
-    //¼ÆËãÎ»Í¼Êý¾Ý
+    //计算位图数据
     if (mac_flag)
     {
         m_bitset_bitmap.set(BITMAP_LEN*8-1);
@@ -342,13 +337,13 @@ int ISO8583::Pack(string &msg, bool mac_flag)
 
     msg = string(total_msg_len, MSG_LEN) + header_bcd + msg_type_bcd + m_bitmap + m_content;
     StringUtility::bcd2asc(msg, hex);
-    PLOG_DEBUG("msg:%s", hex.c_str());
+    PLOG_INFO("msg:%s", hex.c_str());
 
     return 0;
 }
 
 
-int ISO8583::Unpack(const string &msg)
+int ISO8583_CIL::Unpack(const string &msg)
 {
     int ret = 0;
     int len = 0;
@@ -406,7 +401,7 @@ int ISO8583::Unpack(const string &msg)
     //    m_mac_data = msg_type_bcd+m_bitmap+m_content;
     //}
 
-    //½â°üÏûÏ¢ÄÚÈÝ
+    //解包消息内容
     offset = 0;
     for (unsigned int i=1; i<BITMAP_LEN*8; ++i)
     {
@@ -428,10 +423,6 @@ int ISO8583::Unpack(const string &msg)
             {
                 log_hex = item_value;
             }
-            if (i==1 || i==13 || i==34 || i==35 || i==51){
-                log_hex.assign(log_hex.size(), '*');
-            }
-
             PLOG_INFO("%03d:%s", i+1, log_hex.c_str());
             m_map_field.insert(make_pair(i+1, item_value));
             item_value.erase();
@@ -450,7 +441,7 @@ int ISO8583::Unpack(const string &msg)
     return 0;
 }
 
-string ISO8583::GetMsgKey()
+string ISO8583_CIL::GetMsgKey()
 {
     int array_len;
     string key;

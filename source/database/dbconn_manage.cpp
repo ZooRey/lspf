@@ -8,8 +8,12 @@ using namespace oracle::occi;
 #include "database/dbconn_manage.h"
 #include "database/dbexception.h"
 #include "dbconn_check.h"
+#include "crypto_alg/crypto_alg.h"
+#include "common/string_utility.h"
 
 DBConnManage *DBConnManage::m_manage = NULL;
+
+#define xxtea_key_uri "JLZF/POS+/DB/ENC/KEY/URI"
 
 void DBConnManage::init()
 {
@@ -25,20 +29,36 @@ void DBConnManage::init()
 	}
 }
 
+bool DBConnManage::DecryptPwd(std::string &passwd)
+{
+    if (!StringUtility::StartsWith(passwd, "$ENC")){
+        return true;
+    }
+
+    std::string src = passwd.substr(4); 
+
+    XxteaCrypto::Decrypt(src, xxtea_key_uri, passwd);
+    return true;
+}
+
 bool DBConnManage::creatConnectionPool(const string  &dbname, const string &user, const string &passwd,
                                         const int &minConn, const int &maxConn, const int &inrConn)
 {
     try{
+        std::string passwd_ = passwd;
+
+        DecryptPwd(passwd_);
+
         ///创建无状态连接池
         StatelessConnectionPool *connection_pool= m_env->createStatelessConnectionPool(
-                                user, passwd, dbname, maxConn, minConn, inrConn, StatelessConnectionPool::HOMOGENEOUS);
+                                user, passwd_, dbname, maxConn, minConn, inrConn, StatelessConnectionPool::HOMOGENEOUS);
 
         ///设置连接池超时时间
         connection_pool->setTimeOut( 600 );
         StatelessConnectionPool::BusyOption option = StatelessConnectionPool::FORCEGET;
         connection_pool->setBusyOption(option);
 
-        DBConnPool *pDBConnPool = new DBConnPool(dbname, user, passwd, connection_pool);
+        DBConnPool *pDBConnPool = new DBConnPool(dbname, user, passwd_, connection_pool);
 
         m_vecPool.push_back(pDBConnPool);
 

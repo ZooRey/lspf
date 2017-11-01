@@ -495,7 +495,7 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
     if (pri < g_log_priority) {
         return;
     }
-    
+
     std::string logid = GetLogId();
     if (logid.empty()){
         logid = "default";
@@ -545,7 +545,7 @@ void Log::Write(LOG_PRIORITY pri, const char* file, uint32_t line,
 
     // 输出到stdout
     if (DEV_STDOUT == g_device_type) {
-        fprintf(stdout, "%s", buff);
+        fprintf(stdout, "%s\n", buff);
         return;
     }
 

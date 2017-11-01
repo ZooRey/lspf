@@ -408,7 +408,11 @@ int CUPS8583::Pack(string &msg, bool mac_flag)
 		{
 			hex = it->second;
 		}
-		PLOG_INFO("%03d:%s", it->first, hex.c_str());
+        if (it->first==2 || it->first==14 || it->first==35 || it->first==36 || it->first==52){
+            hex.assign(hex.size(), '*');
+        }
+
+        PLOG_INFO("%03d:%s", it->first, hex.c_str());
 		m_content += item_buff;
 	}
 
@@ -521,7 +525,13 @@ int CUPS8583::Unpack(const string &msg)
 			{
 				log_hex = item_value;
 			}
-			PLOG_INFO("%03d:%s", i+1, log_hex.c_str());
+
+            if (i==1 || i==13 || i==34 || i==35 ||i==51){
+                log_hex.assign(log_hex.size(), '*');
+            }
+
+            PLOG_INFO("%03d:%s", i+1, log_hex.c_str());
+
 			m_map_field.insert(make_pair(i+1, item_value));
 			item_value.erase();
 		}

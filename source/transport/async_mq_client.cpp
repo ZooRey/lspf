@@ -28,7 +28,7 @@ AsyncMQClient::AsyncMQClient(BlockingQueue<std::string> *recv_queue) :
 
 int AsyncMQClient::OnAsyncMessage(int handle, const char *message, size_t message_len, boost::shared_ptr<MessageReply> reply)
 {
-    PLOG_INFO("Get Message form MQ, length=%d, content=%s", message_len, message);
+    PLOG_DEBUG("Get Message form MQ, length=%d, content=%s", message_len, message);
     m_recv_queue->PushBack(std::string(message, message_len));
 
     return 0;
@@ -63,7 +63,7 @@ void AsyncMQClient::Run()
          ///发送数据到消息队列
         lspf::net::Message::Send(m_client_handle, send_buff.c_str(), send_buff.size());
 
-        PLOG_INFO("Send to mq: length=%d, content=%s, ", send_buff.size(), send_buff.c_str());
+        PLOG_DEBUG("Send to mq: length=%d, content=%s", send_buff.size(), send_buff.c_str());
     }
 }
 
