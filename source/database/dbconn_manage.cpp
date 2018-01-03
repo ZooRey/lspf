@@ -49,6 +49,8 @@ bool DBConnManage::creatConnectionPool(const string  &dbname, const string &user
 
         DecryptPwd(passwd_);
 
+        std::cout << "passwd=" << passwd_ << std::endl;
+
         ///创建无状态连接池
         StatelessConnectionPool *connection_pool= m_env->createStatelessConnectionPool(
                                 user, passwd_, dbname, maxConn, minConn, inrConn, StatelessConnectionPool::HOMOGENEOUS);

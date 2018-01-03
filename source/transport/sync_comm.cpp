@@ -46,7 +46,7 @@ void SyncComm::Run()
         timeout_key_list.clear();
         timeout_session_list.clear();
 
-        sleep(m_timeout);
+        sleep(1);
     }
 }
 

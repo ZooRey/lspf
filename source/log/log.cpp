@@ -224,15 +224,17 @@ uint32_t LogFile::m_roll_idx_error  = 0;
 /// @para index 循环索引
 const char* LogFile::GetFileName(const char* type, int index)
 {
-    int len = 0;
+    //int len = 0;
     static char file_name[MAX_PATH_LEN] = {0};
 
     memset(file_name, 0, ARRAYSIZE(file_name));
     if (strlen(g_log_file_name) > 0 ){
-        len = snprintf(file_name, ARRAYSIZE(file_name),
+        //len = 
+        snprintf(file_name, ARRAYSIZE(file_name),
             "%s/%s.%s", g_file_path, g_log_file_name, type);
     }else{
-        len = snprintf(file_name, ARRAYSIZE(file_name),
+        //len = 
+        snprintf(file_name, ARRAYSIZE(file_name),
         "%s/%s.%s", g_file_path, Log::GetSelfName(), type);
     }
 

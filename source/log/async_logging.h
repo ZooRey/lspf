@@ -45,7 +45,7 @@ public:
 	void Data(std::string &data)
 	{
 		data = "";
-		for(size_t i; i<m_data.size(); i++)
+		for(size_t i=0; i<m_data.size(); i++)
 		{
 			data += m_data[i] + "\n";
 		}
@@ -90,6 +90,10 @@ private:
 	BufferVector m_buffers;
 
 	static AsyncLogging* instance_;
+private:
+	////为了编绎通过，见：https://svn.boost.org/trac10/ticket/6981#comment:1
+	void operator=(const AsyncLogging& ref){};
+	AsyncLogging(const AsyncLogging& ref){};
 };
 } //namespace lspf
 } //namespace log
